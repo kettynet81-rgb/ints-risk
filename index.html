@@ -142,7 +142,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.3';
+const VERSION = 'v1.4';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -509,7 +509,7 @@ function eduEdit(e) {
   <div class="r c4">${fld('일자', inp(b('date'), e.date, 'date'))}${fld('시작', inp(b('t1'), e.t1, 'time'))}${fld('종료', inp(b('t2'), e.t2, 'time'))}${fld('장소', inp(b('place'), e.place))}</div>
   ${e.type === '교육' ? `<div class="r c2">${fld('강사', inp(b('teacher'), e.teacher))}${fld('교육 구분', inp(b('title'), e.title, 'text', 'placeholder="예: 정기 위험성평가 결과 교육"'))}</div>` : `<div class="r">${fld('회의 제목', inp(b('title'), e.title, 'text', 'placeholder="예: 2026년 위험성평가 실시 회의"'))}</div>`}
   <div class="r">${fld(e.type === '교육' ? '교육 내용' : '회의 내용', ta(b('content'), e.content, 6))}</div>
-  ${e.type === '회의' ? `<div class="r">${fld('근로자대표 의견', ta(b('opinion'), e.opinion, 3))}</div>` : ''}
+  ${e.type === '회의' ? `<div class="r">${fld('근로자대표 의견', ta(b('opinion'), e.opinion, 5))}</div><div class="bar" style="margin-top:6px"><button class="btn s" data-act="draftOpinion" data-id="${e.id}">앱 기록으로 의견 초안 만들기</button><span class="small muted">지적사항 진행, 평가 결과, 작업장 근로자 의견, TBM 특이사항을 모아 초안을 씁니다. 고쳐서 쓰세요.</span></div>` : ''}
   <div class="f" style="margin-top:8px"><span>${e.type === '교육' ? '교육' : '회의개최'} 사진 · 근거서류</span>${phStrip(b('photos'), e.photos, '사진')}</div>
   ${attBlock('events', e)}`;
 }
@@ -1001,6 +1001,26 @@ ACT.newEv = async a => {
     : { ...base, title: 'SUS 소재 하역·적재', place: '가공실', period: '', proc: S.meta.procs[0] ? procKey(S.meta.procs[0]) : '', item: 'SUS 소재', weight: '', shape: '', method: '대차', chief: '', workers: '', route: '', risks: '', chk: {}, measures: '', writer: '', checker: '', att: [] };
   S.events.push(o); await saveNow('events', o.id);
   go(type === '수시' ? 'adhoc' : type === '중량물' ? 'heavy' : type === '정기' ? 'periodic' : 'edu', o.id);
+};
+function opinionDraft() {
+  const F = S.meta.findings, done = F.filter(f => f.status === '완료'), open = F.filter(f => f.status !== '완료');
+  const pe = S.events.find(x => x.type === '정기');
+  const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9), tdone = tgt.filter(r => r.done);
+  const L = [];
+  L.push(`1. ${S.year}년 위험성평가 실시계획(조직, 역할, 일정, 평가 방법)에 동의합니다.`);
+  if (F.length) L.push(`2. 2025년 사후점검 지적사항 ${F.length}건 중 ${done.length}건 개선 완료${open.length ? `, 나머지 ${open.length}건(${open.slice(0, 4).map(f => f.title).join(', ')}${open.length > 4 ? ' 등' : ''})은 계획대로 조속히 이행해 주시기 바랍니다.` : '를 확인하였습니다.'}`);
+  if (tgt.length) L.push(`3. 위험도 9 이상 개선대상 ${tgt.length}건(${[...new Set(tgt.map(r => r.proc.split('|')[1]))].slice(0, 4).join(', ')})에 대한 감소대책 이행(현재 ${tdone.length}건 완료)과 개선 전·후 확인 결과를 근로자에게 공유해 주시기 바랍니다.`);
+  const ops = pe ? wps().map(w => [w, ((pe.wp || {})[w] || {}).opinion]).filter(x => (x[1] || '').trim()) : [];
+  if (ops.length) L.push(`4. 작업장 근로자 의견: ${ops.map(([w, o]) => `[${w}] ${o.trim().replace(/\n+/g, ' ')}`).join(' / ')}`);
+  const notes = [...S.tbm].sort((a, b) => (b.date || '').localeCompare(a.date || '')).filter(t => (t.note || '').trim()).slice(0, 3);
+  if (notes.length) L.push(`${ops.length ? 5 : 4}. TBM 건의사항: ${notes.map(t => `${t.date} ${t.wp} - ${t.note.trim().replace(/\n+/g, ' ')}`).join(' / ')}`);
+  L.push(`${L.length + 1}. 근로자대표로서 공정별 TBM 및 위험성평가에 근로자가 적극 참여하도록 협조하겠으며, 유해·위험요인 개선 제안과 포상 제도를 적극 운영해 주시기 바랍니다.`);
+  return L.join('\n');
+}
+ACT.draftOpinion = async a => {
+  const e = S.events.find(x => x.id === a.dataset.id);
+  if ((e.opinion || '').trim() && !(await confirmBox('지금 적힌 의견을 초안으로 바꿀까요?', '기존 내용은 지워집니다.'))) return;
+  e.opinion = opinionDraft(); await saveNow('events', e.id); route();
 };
 ACT.addRowWp = async a => {
   const wp = a.dataset.wp, p = S.meta.procs.find(x => x.wp === wp);
