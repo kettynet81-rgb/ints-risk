@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.16';
+const VERSION = 'v1.17';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -609,7 +609,7 @@ function meetingDraft(e) {
       { who: CH, text: `이번 평가는 정상 작업과 비정상 작업을 구분해 평가하겠습니다. 평가 결과 위험도 9 이상으로 결정되는 항목은 기한을 정해 개선하고 전·후 기록을 남기도록 하겠습니다.` }] },
     { t: '현장 근로자 참여 및 의견 수렴 방안', talks: [
       { who: RP, text: '평가표 양식이 복잡하면 근로자들이 참여하기 어렵습니다. TBM 때 바로 말하거나 간단히 제안할 수 있게 해 주십시오.' },
-      { who: MG, text: '공정별 TBM에서 나온 위험요인을 평가에 바로 반영하고, 작업장별 평가 때 관리감독자와 해당 작업 근로자가 함께 참여하여 서명하도록 하겠습니다. 결과는 평가 후 1주 이내 게시판에 게시하고 교육하겠습니다.' },
+      { who: MG, text: '공정별 TBM에서 나온 위험요인을 평가에 바로 반영하고, 작업장별 평가 때 관리감독자와 해당 작업 근로자가 함께 참여하여 서명하도록 하겠습니다. 평가 결과는 게시판에 게시하고 교육을 통해 근로자에게 알리겠습니다.' },
       { who: CEO, text: `근로자 개선 제안 중 실제 개선으로 이어진 우수 제안은 포상해서 참여를 유도해 주십시오.${rw.dept || rw.idea ? ` (참여 우수 부서 ${won(rw.dept)}만원, 우수 개선제안 ${won(rw.idea)}만원)` : ''}` }] },
     { t: '향후 일정 및 예산 지원', talks: [
       { who: CH, text: `${pe?.date ? kdate(pe.date) + '부터' : '일정 확정 후'} 작업장별 정기평가를 실시하고, 위험요인 도출이 끝나면 노사 합동 현장 점검을 거쳐 감소대책과 예산을 확정하겠습니다.` },
@@ -619,7 +619,7 @@ function meetingDraft(e) {
     `2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. ${prev}년부터 시행 중인 공정별 TBM은 매일 계속 실시하고 일지를 정리·보관함.`,
     `3. ${prev}년 지적사항: 미완료 ${fo.length}건은 담당·기한을 정해 연내 완료함.`,
     `4. 개선 예산: 평가 결과 위험도 9 이상으로 결정된 항목은 사업주 승인 하에 우선 예산 배정함.`,
-    '5. 결과 공유: 평가 완료 후 1주 이내 게시판 고지 및 근로자 교육, 공단 KRAS 등록.'].join('\n');
+    '5. 결과 공유: 평가 완료 후 게시판 고지 및 근로자 교육을 실시하고, 평가 결과는 공단 KRAS에 등록함.'].join('\n');
   const actions = [
     { when: e.date ? `${add(1)} ~ ${add(3)}` : '', task: '전 부서 위험성평가 교육 및 평가 계획 공지 (실시 공고 게시)', owner: ROLES.mgr[1] },
     { when: e.date ? `${add(4)} ~ ${add(11)}` : '', task: '작업장별 유해·위험요인 도출 및 위험성 추정·결정 (근로자 참여)', owner: '관리감독자' },
