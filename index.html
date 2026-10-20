@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INTS 위험성평가</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M16 3 30 28H2z%22 fill=%22none%22 stroke=%22%23111%22 stroke-width=%223%22/%3E%3Cpath d=%22M16 12v8M16 23v2%22 stroke=%22%23111%22 stroke-width=%223%22/%3E%3C/svg%3E">
+<style>
+:root{--ink:#111;--sub:#555;--mute:#888;--line:#cfcfcf;--line2:#999;--bg:#fff;--soft:#f4f4f4}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",system-ui,sans-serif;font-size:14px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--ink)}
+.hd{display:flex;align-items:center;gap:10px;padding:10px 16px}
+.hd h1{font-size:16px;font-weight:700;white-space:nowrap}
+.hd select{padding:4px 6px;border:1px solid var(--line2);border-radius:6px;background:#fff}
+.hd .st{margin-left:auto;font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+nav{display:flex;overflow-x:auto;padding:0 8px;gap:2px;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{flex:none;padding:8px 10px;color:var(--sub);text-decoration:none;border-bottom:3px solid transparent;font-weight:600;white-space:nowrap}
+nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
+main{max-width:1100px;margin:0 auto;padding:16px 16px 80px}
+h2{font-size:18px;margin-bottom:12px}
+h3{font-size:15px;margin:18px 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.bar .sp{flex:1}
+.btn{padding:6px 12px;border:1px solid var(--ink);background:#fff;border-radius:6px;cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--ink);color:#fff}
+.btn.s{padding:3px 8px;font-size:12.5px}
+.btn.g{border-color:var(--line2);color:var(--sub)}
+.btn:disabled{opacity:.4;cursor:default}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;background:#fff}
+.card.hi{border-color:var(--ink);border-width:1.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.kpi .n{font-size:24px;font-weight:700}
+.kpi .l{color:var(--sub);font-size:12.5px}
+.kpi .t{color:var(--mute);font-size:12px;margin-top:4px}
+.f{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f>span{font-size:11.5px;color:var(--sub)}
+.f input,.f select,.f textarea,.inp{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.f textarea{resize:vertical;min-height:38px}
+.f input:focus,.f select:focus,.f textarea:focus,.inp:focus{outline:none;border-color:var(--ink)}
+.r{display:grid;gap:8px;margin-top:8px}
+.c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:repeat(3,1fr)}.c4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:640px){.c3,.c4{grid-template-columns:1fr 1fr}.c2{grid-template-columns:1fr}.hd{padding:8px 12px;gap:8px}.hd h1{font-size:15px}main{padding:12px 12px 80px}.docpage{padding:8mm 5mm}}
+.rk{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--line2);border-radius:20px;font-size:12.5px;white-space:nowrap}
+.rk.m{border:2px solid var(--ink);font-weight:700}
+.rk.h{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:700}
+.tag{display:inline-block;padding:0 6px;border:1px solid var(--line2);border-radius:4px;font-size:11.5px;color:var(--sub)}
+.tag.b{border-color:var(--ink);color:var(--ink);font-weight:700}
+.muted{color:var(--mute)}.small{font-size:12px}
+.row-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row-h .sp{flex:1}
+.ph{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ph img{width:72px;height:72px;object-fit:cover;border:1px solid var(--line);border-radius:4px;cursor:pointer;background:var(--soft)}
+.ph .add{width:72px;height:72px;border:1px dashed var(--line2);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--sub);cursor:pointer;font-size:12px;text-align:center;background:#fff}
+.lst{border-top:1px solid var(--line)}
+.lst .it{display:flex;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.lst .it:hover{background:var(--soft)}
+.lst .it .sp{flex:1;min-width:0}
+.att{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+.att .a{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-height:46px}
+.att .a .nm{flex:1;min-width:0}
+.att .a img{height:34px;max-width:90px;cursor:pointer}
+.att .a .x{border:none;background:none;color:var(--mute);cursor:pointer;font-size:15px}
+.chk{display:flex;gap:6px;align-items:flex-start;padding:4px 0}
+.chk input{margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chips a{padding:4px 10px;border:1px solid var(--line2);border-radius:16px;cursor:pointer;color:var(--sub);text-decoration:none;font-size:13px}
+.chips a.on{border-color:var(--ink);background:var(--ink);color:#fff}
+table.t{border-collapse:collapse;width:100%}
+table.t th,table.t td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+table.t th{background:var(--soft);font-weight:600;font-size:12.5px}
+table.t td input,table.t td select{width:100%;border:none;padding:3px;background:transparent}
+.scroll{overflow-x:auto}
+.tb{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:84px;z-index:5;background:#fff;padding:6px 0;border-bottom:1px solid var(--line);margin-bottom:10px}
+/* 문서 (화면·인쇄 공통) */
+.doc{font-family:"Malgun Gothic","맑은 고딕",sans-serif;color:#000;background:#fff;font-size:10.5pt;line-height:1.6}
+.docpage{border:1px solid var(--line2);padding:18mm 16mm;max-width:210mm;margin:0 auto 16px;min-height:120mm}
+.docpage:focus{outline:2px solid var(--ink)}
+.doc p{margin:3px 0}
+.doc table{border-collapse:collapse;width:100%;margin:6px 0}
+.doc td,.doc th{border:1px solid #000;padding:4px 6px;vertical-align:middle}
+.doc th{white-space:nowrap;font-weight:700}
+.doc .ind{padding-left:14px}
+.doc ul.dash{list-style:none;padding-left:14px}
+.doc ul.dash li::before{content:"- "}
+.doc li>p:first-child{display:inline}
+.doc img{max-width:100%}
+.doc ul,.doc ol{padding-left:20px}
+.doc h1{font-size:18pt;text-align:center;margin:0 0 10px;letter-spacing:2px}
+.doc h2{font-size:12pt;margin:12px 0 6px}
+.doc .c{text-align:center}.doc .rt{text-align:right}
+.doc .sig{height:32px;max-width:100%;display:block;margin:0 auto}
+.doc .phs{display:flex;flex-wrap:wrap;gap:6px}
+.doc .phs img{width:48%;max-height:70mm;object-fit:contain;border:1px solid #000}
+.doc .small{font-size:9pt}
+.doc .bk{break-inside:avoid}
+/* 모달 */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.mo .box{background:#fff;border-radius:10px;padding:16px;width:min(560px,100%);max-height:90vh;overflow:auto}
+.mo .box h3{margin:0 0 10px}
+.mo .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.mo canvas{width:100%;height:auto;border:1px solid var(--ink);border-radius:6px;touch-action:none;background:#fff;display:block}
+.mo img.big{max-width:100%;display:block;margin:0 auto}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:200;display:none;max-width:90vw}
+#print{display:none}
+@page{size:A4;margin:12mm}
+@page land{size:A4 landscape;margin:9mm}
+@media print{
+  body>*:not(#print){display:none!important}
+  #print{display:block}
+  #print .land{page:land}
+  #print .docpage{border:none;padding:0;margin:0;max-width:none;min-height:0}
+  #print .pb{break-after:page}
+  #print table{page-break-inside:auto}
+  #print tr{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd"><h1>INTS 위험성평가</h1><select id="yearSel"></select><span class="st" id="st">불러오는 중…</span></div>
+  <nav id="nav"></nav>
+</header>
+<main id="view"></main>
+<div id="print" class="doc"></div>
+<div id="toast"></div>
+<input type="file" id="fileIn" accept="image/*" multiple hidden>
+<input type="file" id="jsonIn" accept="application/json,.json" hidden>
+<script src="seed.js"></script>
+<script src="docs-seed.js"></script>
+<script type="module">
+/* ============ 기본 ============ */
+const VERSION = 'v1.0';
+const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nl = s => esc(s).replace(/\n/g, '<br>');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const kdate = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${y}년 ${+m}월 ${+d}일`; };
+const WD = ['일','월','화','수','목','금','토'];
+const kdateW = s => { if (!s) return ''; const [y,m,d]=s.split('-').map(Number); return `${kdate(s)} (${WD[new Date(y,m-1,d).getDay()]})`; };
+const clone = o => JSON.parse(JSON.stringify(o ?? null));
+function toast(m, ms = 2200) { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', ms); }
+
+const TYPES = ['끼임','베임','맞음','떨어짐','넘어짐','부딪힘','깔림','감전','화재·폭발','화상','화학물질 노출','근골격계질환','기타'];
+const FREQ = {1:'거의 없음',2:'낮음',3:'보통',4:'높음',5:'매우 높음'};
+const SEV = {1:'영향 없음',2:'경미 불휴업',3:'경미 휴업',4:'중대재해'};
+const ADHOC = ['① 중대산업사고 또는 산업재해(휴업 이상) 발생','② 작업장 변경(작업자, 설비, 작업방법 및 절차 등)','③ 건설물, 기계·기구, 설비 등의 정비 또는 보수','④ 기계·기구, 설비 등의 신규 도입·변경 또는 이전','⑤ 원재료, 화학물질 등의 신규 사용 또는 변경','⑥ 그 밖에 작업환경 변화'];
+const EDU_DEFAULT = '● 「위험성평가」 추진목표 및 사업주의 추진방침\n● 「위험성평가」를 위한 사전준비 및 유해·위험요인 파악 방법\n● 유해·위험요인에 대한 위험성 추정 및 결정방법\n● 위험성 감소대책 수립 및 실행의 절차와 기록유지 방법\n● 위험성평가 결과(공정별 주요 유해·위험요인 및 감소대책) 공유';
+const MEET_DEFAULT = '● 위험성평가 전사 추진을 위한 계획수립의 적정성\n● 위험성평가 실시에 따른 책임과 역할 부여\n● 2025년 사후점검 지적사항 개선 계획 공유 (TBM 일지, 결과 고지, 포상, 수시평가 등)\n● 위험성평가와 관련한 관심사항 토론 등';
+function grade(r) { if (!r) return ''; if (r <= 3) return '무시'; if (r <= 6) return '낮음'; if (r <= 8) return '보통'; if (r <= 11) return '약간높음'; if (r <= 15) return '높음'; return '매우높음'; }
+function rkCls(r) { return r >= 12 ? 'h' : r >= 9 ? 'm' : ''; }
+const risk = (f, s) => (+f || 0) * (+s || 0);
+const rk = (f, s) => { const r = risk(f, s); return r ? `<span class="rk ${rkCls(r)}">${r} ${grade(r)}</span>` : '<span class="rk">-</span>'; };
+
+/* ============ 저장소 (Firebase → 실패 시 브라우저) ============ */
+let MODE = 'local', DB = null, FS = null;
+const L = {
+  get(c) { try { return JSON.parse(localStorage.getItem('ra:' + c) || '{}'); } catch (e) { return {}; } },
+  set(c, m) { try { localStorage.setItem('ra:' + c, JSON.stringify(m)); } catch (e) { toast('브라우저 저장 공간이 부족합니다'); throw e; } }
+};
+const timeout = (ms) => new Promise((_, r) => setTimeout(() => r(new Error('timeout')), ms));
+async function initStore() {
+  if (new URLSearchParams(location.search).has('local')) return;
+  try {
+    const [app, fs] = await Promise.race([Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')]), timeout(8000)]);
+    const a = app.initializeApp(CFG, 'ints-risk');
+    DB = fs.getFirestore(a); FS = fs;
+    await Promise.race([FS.getDoc(FS.doc(DB, 'ra_meta', '_probe')), timeout(8000)]);
+    MODE = 'cloud';
+  } catch (e) { console.warn('cloud off', e); MODE = 'local'; }
+}
+const cleanData = o => JSON.parse(JSON.stringify(o));
+async function dGet(col, id) {
+  if (MODE === 'cloud') { const s = await FS.getDoc(FS.doc(DB, col, id)); return s.exists() ? s.data() : null; }
+  return L.get(col)[id] || null;
+}
+async function dPut(col, id, data) {
+  data = cleanData(data);
+  if (MODE === 'cloud') return FS.setDoc(FS.doc(DB, col, id), data);
+  const m = L.get(col); m[id] = data; L.set(col, m);
+}
+async function dDel(col, id) {
+  if (MODE === 'cloud') return FS.deleteDoc(FS.doc(DB, col, id));
+  const m = L.get(col); delete m[id]; L.set(col, m);
+}
+async function dList(col, year) {
+  if (MODE === 'cloud') {
+    const q = FS.query(FS.collection(DB, col), FS.where('year', '==', year));
+    const s = await FS.getDocs(q); const a = []; s.forEach(d => a.push({ ...d.data(), id: d.id })); return a;
+  }
+  return Object.entries(L.get(col)).filter(([, v]) => v.year === year).map(([id, v]) => ({ ...v, id }));
+}
+
+/* 저장 대기열 */
+const pend = new Map(); let saving = 0;
+function setSt(t) { $('#st').textContent = t; }
+function stIdle() { setSt((MODE === 'cloud' ? '☁ 서버 저장' : '⚠ 이 브라우저에만 저장') + ' · ' + VERSION); }
+function queueSave(col, id, ms = 700) {
+  const k = col + '|' + id; clearTimeout(pend.get(k)); setSt('저장 대기…');
+  pend.set(k, setTimeout(() => { pend.delete(k); saveNow(col, id); }, ms));
+}
+async function saveNow(col, id) {
+  const o = getObj(col, id); if (!o) return;
+  saving++; setSt('저장 중…');
+  try {
+    if (col === 'meta') await dPut('ra_meta', String(S.year), S.meta);
+    else if (col === 'docs') await dPut('ra_docs', S.year + '_' + id, { year: S.year, sec: id, html: S.docs[id], at: Date.now() });
+    else await dPut('ra_' + col, id, o);
+  } catch (e) { toast('저장 실패: ' + e.message, 5000); console.error(e); }
+  saving--; if (!saving && !pend.size) stIdle();
+}
+async function flushAll() { const ks = [...pend.keys()]; for (const k of ks) { clearTimeout(pend.get(k)); pend.delete(k); const [c, i] = k.split('|'); await saveNow(c, i); } }
+window.addEventListener('beforeunload', e => { if (pend.size || saving) { flushAll(); e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushAll(); });
+
+/* 사진 */
+const phCache = new Map();
+async function getPhoto(id) {
+  if (phCache.has(id)) return phCache.get(id);
+  const p = dGet('ra_photos', id).then(d => d ? d.data : '').catch(() => '');
+  phCache.set(id, p); return p;
+}
+function compress(file, max = 1280, q = .72) {
+  return new Promise((res, rej) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => { const r = Math.min(1, max / Math.max(img.width, img.height)); const w = Math.round(img.width * r), h = Math.round(img.height * r);
+      const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', q)); };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('이미지를 읽을 수 없습니다')); };
+    img.src = u;
+  });
+}
+function hydrate(root = document) {
+  root.querySelectorAll('img[data-ph]:not([src])').forEach(async im => { const d = await getPhoto(im.dataset.ph); if (d) im.src = d; else im.alt = '없음'; });
+}
+const phStrip = (key, ids, label = '사진') => `<div class="ph">${(ids || []).map(i => `<img data-ph="${i}" data-phk="${key}" alt="">`).join('')}<div class="add" data-addph="${key}">+ ${esc(label)}</div></div>`;
+
+/* ============ 상태 ============ */
+const S = { year: 2026, meta: null, rows: [], tbm: [], events: [], docs: {}, tab: 'dash', id: null, f: { wp: '', proc: '', view: 'all', month: '' , doc: 'cover'} };
+function getObj(col, id) {
+  if (col === 'meta') return S.meta;
+  if (col === 'docs') return S.docs[id] != null ? { html: S.docs[id] } : null;
+  return (S[col] || []).find(x => x.id === id);
+}
+const procKey = p => p.wp + '|' + p.proc;
+const procLabel = k => (k || '').replace('|', ' · ');
+const procOrder = k => { const i = S.meta.procs.findIndex(p => procKey(p) === k); return i < 0 ? 99 : i; };
+const wps = () => [...new Set(S.meta.procs.map(p => p.wp))];
+const person = n => S.meta.people.find(p => p.name === n);
+const pLabel = n => { const p = person(n); return p ? [p.dept, p.pos].filter(Boolean).join('/') : ''; };
+
+function seedMeta(y) {
+  const sd = window.SEED;
+  return { year: y, company: sd.company, ceo: sd.ceo, tbmLeader: sd.tbmLeader, people: clone(sd.people), procs: clone(sd.procs),
+    findings: sd.findings.map((f, i) => ({ ...f, no: i + 1, status: '미착수', owner: '', due: '', action: '', photos: [] })), deletions: [], created: Date.now() };
+}
+function newRow(o = {}) {
+  return { id: uid(), year: S.year, proc: '', task: '', hazard: '', type: '', current: '', f: 1, s: 1, measure: '', owner: '', due: '', f2: 0, s2: 0, done: '', before: [], after: [], src: '정기', ev: '', ord: Date.now(), ...o };
+}
+
+async function loadYear(y) {
+  S.year = y; setSt('불러오는 중…');
+  let meta = await dGet('ra_meta', String(y));
+  if (!meta) {
+    $('#view').innerHTML = '';
+    if (y === 2026) { meta = await firstSetup(y); }
+    else { renderEmptyYear(y); return; }
+  }
+  S.meta = meta;
+  S.meta.findings ||= []; S.meta.deletions ||= []; S.meta.people ||= []; S.meta.procs ||= [];
+  const [rows, tbm, events, docs] = await Promise.all([dList('ra_rows', y), dList('ra_tbm', y), dList('ra_events', y), dList('ra_docs', y)]);
+  S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
+  docs.forEach(d => S.docs[d.sec] = d.html);
+  stIdle(); route();
+}
+async function firstSetup(y) {
+  const meta = seedMeta(y);
+  await dPut('ra_meta', String(y), meta);
+  let t = Date.now();
+  for (const [proc, task, hazard, type, current, f, s, measure] of window.SEED.rows) {
+    const r = newRow({ proc, task, hazard, type, current, f, s, measure, ord: t++, draft: true });
+    await dPut('ra_rows', r.id, r);
+  }
+  for (const d of window.DOCS_SEED) await dPut('ra_docs', y + '_' + d.id, { year: y, sec: d.id, html: d.html, at: Date.now() });
+  toast('2026년 기본 자료를 만들었습니다');
+  return meta;
+}
+function renderEmptyYear(y) {
+  S.meta = null; stIdle();
+  $('#nav').innerHTML = '';
+  $('#view').innerHTML = `<h2>${y}년 자료가 없습니다</h2><p class="muted" style="margin-bottom:12px">이전 연도 자료를 복사해서 시작하거나 빈 상태로 시작할 수 있습니다.</p>
+  <div class="bar"><button class="btn p" data-act="copyFrom" data-y="${y - 1}">${y - 1}년에서 복사</button><button class="btn" data-act="blankYear" data-y="${y}">빈 상태로 시작</button></div>`;
+}
+
+/* ============ 라우팅 ============ */
+const TABS = [['dash','현황'],['find','2025 지적사항'],['rows','위험성평가표'],['tbm','TBM 일지'],['edu','교육·회의'],['adhoc','수시평가'],['heavy','중량물 작업계획서'],['docs','계획서·문서'],['set','설정']];
+function go(tab, id) { location.hash = id ? `${tab}/${id}` : tab; }
+function route() {
+  if (!S.meta) return;
+  const [t, id] = (location.hash.slice(1) || 'dash').split('/');
+  S.tab = TABS.some(x => x[0] === t) ? t : 'dash'; S.id = id || null;
+  $('#nav').innerHTML = TABS.map(([k, l]) => `<a href="#${k}" class="${k === S.tab ? 'on' : ''}">${l}</a>`).join('');
+  const v = $('#view');
+  try { v.innerHTML = VIEWS[S.tab](); } catch (e) { console.error(e); v.innerHTML = `<p>화면 오류: ${esc(e.message)}</p>`; }
+  hydrate(v);
+  if (S.tab === 'docs') bindDoc();
+  const on = $('#nav a.on'); if (on) on.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+}
+window.addEventListener('hashchange', () => { flushAll(); route(); window.scrollTo(0, 0); });
+
+/* ============ 화면 ============ */
+const VIEWS = {};
+const sel = (opts, v, attrs = '') => `<select ${attrs}>${opts.map(o => { const [val, lab] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${String(val) === String(v ?? '') ? 'selected' : ''}>${esc(lab)}</option>`; }).join('')}</select>`;
+const fld = (label, inner) => `<label class="f"><span>${label}</span>${inner}</label>`;
+const inp = (b, v, type = 'text', extra = '') => `<input type="${type}" data-b="${b}" value="${esc(v)}" ${extra}>`;
+const ta = (b, v, rows = 2, extra = '') => `<textarea rows="${rows}" data-b="${b}" ${extra}>${esc(v)}</textarea>`;
+const procOpts = () => [['', '공정 선택'], ...S.meta.procs.map(p => [procKey(p), procLabel(procKey(p))])];
+
+/* 현황 */
+VIEWS.dash = () => {
+  const F = S.meta.findings, fd = F.filter(f => f.status === '완료').length, fp = F.filter(f => f.status === '진행중').length;
+  const R = S.rows, tgt = R.filter(r => risk(r.f, r.s) >= 9), tdone = tgt.filter(r => r.done);
+  const red = R.filter(r => r.done && r.f2 && r.s2 && risk(r.f, r.s));
+  const avgRed = red.length ? Math.round(red.reduce((a, r) => a + (1 - risk(r.f2, r.s2) / risk(r.f, r.s)), 0) / red.length * 100) : null;
+  const ym = today().slice(0, 7);
+  const tbmM = S.tbm.filter(t => (t.date || '').startsWith(ym));
+  const tbmBy = wps().map(w => `${w} ${new Set(tbmM.filter(t => t.wp === w).map(t => t.date)).size}일`).join(' · ');
+  const lastT = [...S.tbm].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+  const edus = S.events.filter(e => e.type === '교육').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const eduSigned = new Set(edus.flatMap(e => Object.keys(e.sigs || {})));
+  const total = S.meta.people.length;
+  const cnt = t => S.events.filter(e => e.type === t).length;
+  return `<h2>${S.year}년 위험성평가 현황</h2>
+  <div class="grid">
+    <div class="card kpi"><div class="l">2025 사후점검 지적사항 개선</div><div class="n">${fd} / ${F.length}</div><div class="t">진행중 ${fp}건 · 미착수 ${F.length - fd - fp}건</div></div>
+    <div class="card kpi"><div class="l">감소대책 이행 (위험도 9 이상)</div><div class="n">${tdone.length} / ${tgt.length}</div><div class="t">목표 고위험 100% · 평가 항목 전체 ${R.length}개</div></div>
+    <div class="card kpi"><div class="l">위험도 감소율 (개선 완료 항목 평균)</div><div class="n">${avgRed == null ? '-' : avgRed + '%'}</div><div class="t">목표 80% 이상 감소 · 재평가 ${red.length}건</div></div>
+    <div class="card kpi"><div class="l">이번 달 TBM 실시일</div><div class="n">${new Set(tbmM.map(t => t.date + t.wp)).size}회</div><div class="t">${esc(tbmBy)}${lastT ? ' · 최근 ' + esc(lastT.date) : ''}</div></div>
+    <div class="card kpi"><div class="l">위험성평가 교육 이수 (서명 기준)</div><div class="n">${total ? Math.round(eduSigned.size / total * 100) : 0}%</div><div class="t">${eduSigned.size} / ${total}명 · 목표 80% 이상 · 교육 ${edus.length}회</div></div>
+    <div class="card kpi"><div class="l">회의 · 수시평가 · 중량물 계획서</div><div class="n">${cnt('회의')} · ${cnt('수시')} · ${cnt('중량물')}</div><div class="t">건수</div></div>
+  </div>
+  <h3>지적사항 진행</h3>
+  <div class="lst">${F.map((f, i) => `<div class="it" data-go="find"><span class="tag ${f.status === '완료' ? 'b' : ''}">${esc(f.status)}</span><span class="sp">${f.no}. ${esc(f.title)}</span><span class="small muted">${esc(f.owner)} ${esc(f.due)}</span></div>`).join('')}</div>
+  <h3>개선 대상 (위험도 9 이상)</h3>
+  <div class="lst">${tgt.sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s)).map(r => `<div class="it" data-go="rows/${r.id}">${rk(r.f, r.s)}<span class="sp">${esc(procLabel(r.proc))} — ${esc(r.hazard)}</span><span class="tag ${r.done ? 'b' : ''}">${r.done ? '완료' : '미완료'}</span></div>`).join('') || '<p class="muted small" style="padding:8px">없음</p>'}</div>`;
+};
+
+/* 지적사항 */
+VIEWS.find = () => {
+  const tabName = k => (TABS.find(t => t[0] === k) || [])[1];
+  return `<div class="bar"><h2 style="margin:0">2025 사후점검 지적사항 개선</h2><span class="sp"></span><button class="btn" data-act="printFind">개선 결과 보고서 인쇄</button></div>
+  <p class="muted small" style="margin-bottom:10px">2025.07.30 사후점검 (안전보건공단 김시현 대리) · 참석 한은정 팀장, 유성배</p>
+  ${S.meta.findings.map((f, i) => `<div class="card ${f.status === '완료' ? '' : ''}">
+    <div class="row-h"><b>${f.no}. ${esc(f.title)}</b><span class="sp"></span>${f.link ? `<button class="btn s g" data-go="${f.link}">${esc(tabName(f.link))} →</button>` : ''}</div>
+    <div class="small" style="margin-top:4px"><span class="muted">공단 지적</span> ${esc(f.detail)}</div>
+    <div class="small"><span class="muted">계획서 반영</span> ${esc(f.plan)} · <span class="muted">할 일</span> ${esc(f.todo)}</div>
+    <div class="r c3">${fld('상태', sel(['미착수', '진행중', '완료'], f.status, `data-b="meta||findings.${i}.status"`))}${fld('담당', inp(`meta||findings.${i}.owner`, f.owner))}${fld('완료(예정)일', inp(`meta||findings.${i}.due`, f.due, 'date'))}</div>
+    <div class="r">${fld('개선 내용', ta(`meta||findings.${i}.action`, f.action, 2, 'placeholder="무엇을 했는지 (보고서에 그대로 들어갑니다)"'))}</div>
+    ${phStrip(`meta||findings.${i}.photos`, f.photos, '증빙 사진')}
+  </div>`).join('')}`;
+};
+
+/* 위험성평가표 */
+function rowCard(r) {
+  const R = risk(r.f, r.s), R2 = risk(r.f2, r.s2);
+  const b = f => `rows|${r.id}|${f}`;
+  return `<div class="card ${R >= 9 ? 'hi' : ''}" id="row-${r.id}">
+    <div class="row-h"><span id="rk-${r.id}">${rk(r.f, r.s)}</span>${R >= 9 ? '<span class="tag b">개선대상</span>' : ''}${r.src === '수시' ? '<span class="tag">수시</span>' : ''}${r.draft ? '<span class="tag" title="앱이 넣어둔 초안. 내용을 확인·수정하면 표시가 사라집니다">초안</span>' : ''}<span class="sp"></span><button class="btn s g" data-act="delRow" data-id="${r.id}">삭제</button></div>
+    <div class="r c3">${fld('작업장 · 공정', sel(procOpts(), r.proc, `data-b="${b('proc')}"`))}${fld('세부 작업', inp(b('task'), r.task))}${fld('재해 형태', sel([['', '선택'], ...TYPES], r.type, `data-b="${b('type')}"`))}</div>
+    <div class="r c2">${fld('유해·위험요인', ta(b('hazard'), r.hazard))}${fld('현재 안전조치', ta(b('current'), r.current))}</div>
+    <div class="r c4">${fld('빈도', sel([1, 2, 3, 4, 5].map(n => [n, n + ' ' + FREQ[n]]), r.f, `data-b="${b('f')}" data-n`))}${fld('강도', sel([1, 2, 3, 4].map(n => [n, n + ' ' + SEV[n]]), r.s, `data-b="${b('s')}" data-n`))}${fld('담당', inp(b('owner'), r.owner))}${fld('개선 기한', inp(b('due'), r.due, 'date'))}</div>
+    <div class="r">${fld('감소대책' + (R >= 9 ? ' (필수)' : ''), ta(b('measure'), r.measure, 2, R >= 9 ? 'placeholder="위험도 9 이상 — 감소대책을 적어주세요"' : ''))}</div>
+    <div class="r c4">${fld('개선 후 빈도', sel([[0, '-'], ...[1, 2, 3, 4, 5].map(n => [n, n + ' ' + FREQ[n]])], r.f2, `data-b="${b('f2')}" data-n`))}${fld('개선 후 강도', sel([[0, '-'], ...[1, 2, 3, 4].map(n => [n, n + ' ' + SEV[n]])], r.s2, `data-b="${b('s2')}" data-n`))}<div class="f"><span>잔류 위험도</span><div id="rk2-${r.id}" style="padding-top:4px">${R2 ? rk(r.f2, r.s2) : '<span class="muted small">개선 후 입력</span>'}</div></div>${fld('개선 완료일', inp(b('done'), r.done, 'date'))}</div>
+    <div class="r c2"><div class="f"><span>개선 전 사진</span>${phStrip(b('before'), r.before, '전')}</div><div class="f"><span>개선 후 사진</span>${phStrip(b('after'), r.after, '후')}</div></div>
+  </div>`;
+}
+function filteredRows() {
+  const f = S.f;
+  return S.rows.filter(r => (!f.wp || (r.proc || '').startsWith(f.wp + '|')) && (!f.proc || r.proc === f.proc) &&
+    (f.view === 'all' || (f.view === 'tgt' && risk(r.f, r.s) >= 9) || (f.view === 'open' && risk(r.f, r.s) >= 9 && !r.done)))
+    .sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || a.ord - b.ord);
+}
+VIEWS.rows = () => {
+  if (S.id) { const r = S.rows.find(x => x.id === S.id); if (r) return `<div class="bar"><button class="btn" data-go="rows">← 평가표 전체</button></div>${rowCard(r)}`; }
+  const f = S.f, list = filteredRows();
+  const wpProcs = S.meta.procs.filter(p => !f.wp || p.wp === f.wp);
+  return `<div class="bar"><h2 style="margin:0">위험성평가표</h2><span class="sp"></span>
+    <button class="btn" data-act="printRows">평가표 인쇄 (공정 분류표 포함)</button><button class="btn" data-act="printPost">게시용 결과 인쇄</button><button class="btn g" data-act="showDel">삭제 이력 ${S.meta.deletions.length}</button></div>
+  <div class="bar">${sel([['', '작업장 전체'], ...wps()], f.wp, 'data-flt="wp" class="inp" style="width:auto"')}${sel([['', '공정 전체'], ...wpProcs.map(p => [procKey(p), p.proc])], f.proc, 'data-flt="proc" class="inp" style="width:auto"')}${sel([['all', '전체 보기'], ['tgt', '개선대상(9↑)'], ['open', '개선 미완료']], f.view, 'data-flt="view" class="inp" style="width:auto"')}
+    <span class="small muted">${list.length}개</span><span class="sp"></span><button class="btn p" data-act="addRow">+ 항목 추가</button></div>
+  <p class="small muted" style="margin-bottom:10px">위험도 = 빈도(1~5) × 강도(1~4). 9 이상은 감소대책 수립·이행 대상. "초안" 표시 항목은 앱이 넣어둔 예시이니 현장에 맞게 고치거나 삭제하세요 (삭제 사유는 이력으로 남습니다).</p>
+  ${list.map(rowCard).join('') || '<p class="muted">항목이 없습니다.</p>'}`;
+};
+
+/* 참석자 · 서명 */
+function attBlock(col, o) {
+  const names = o.att || [];
+  const others = S.meta.people.filter(p => !names.includes(p.name));
+  const signed = names.filter(n => (o.sigs || {})[n]).length;
+  return `<div class="row-h" style="margin:14px 0 6px"><b>참석자 서명</b><span class="small muted">${signed} / ${names.length}명 서명</span><span class="sp"></span>
+    ${sel([['', '+ 참석자 추가'], ...others.map(p => [p.name, `${p.name} ${[p.dept, p.pos].filter(Boolean).join('/')}`])], '', `data-addatt="${col}|${o.id}" class="inp" style="width:auto"`)}</div>
+  <div class="att">${names.map(n => `<div class="a"><span class="nm">${esc(n)} <span class="small muted">${esc(pLabel(n))}</span></span>
+    ${(o.sigs || {})[n] ? `<img src="${o.sigs[n]}" data-sign="${col}|${o.id}|${esc(n)}" title="다시 서명">` : `<button class="btn s" data-sign="${col}|${o.id}|${esc(n)}">서명</button>`}
+    <button class="x" data-rmatt="${col}|${o.id}|${esc(n)}" title="참석자에서 빼기">×</button></div>`).join('')}</div>`;
+}
+
+/* TBM */
+VIEWS.tbm = () => {
+  if (S.id) { const t = S.tbm.find(x => x.id === S.id); if (t) return tbmEdit(t); }
+  const m = S.f.month || today().slice(0, 7);
+  const list = S.tbm.filter(t => (t.date || '').startsWith(m)).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.wp || '').localeCompare(b.wp || ''));
+  return `<div class="bar"><h2 style="margin:0">TBM 일지</h2><span class="sp"></span><input type="month" class="inp" style="width:auto" data-flt="month" value="${m}"><button class="btn" data-act="printTbmMonth">이 달 일지 전체 인쇄</button></div>
+  <div class="bar">${wps().map(w => `<button class="btn p" data-act="newTbm" data-wp="${esc(w)}">+ 오늘 ${esc(w)} TBM</button>`).join('')}</div>
+  <p class="small muted" style="margin-bottom:8px">새 TBM은 같은 작업장의 직전 TBM 내용을 그대로 불러옵니다. 바뀐 것만 고치고 서명받으면 됩니다.</p>
+  <div class="lst">${list.map(t => { const n = (t.att || []).length, s = Object.keys(t.sigs || {}).filter(k => (t.att || []).includes(k)).length;
+    return `<div class="it" data-go="tbm/${t.id}"><b>${esc(t.date)}</b><span class="tag">${esc(t.wp)}</span><span class="sp small">${esc((t.work || '').split('\n')[0])}</span><span class="small ${s < n ? '' : 'muted'}">서명 ${s}/${n}</span></div>`; }).join('') || '<p class="muted small" style="padding:8px">이 달 기록이 없습니다.</p>'}</div>`;
+};
+function tbmEdit(t) {
+  const b = f => `tbm|${t.id}|${f}`;
+  const hz = S.rows.filter(r => (r.proc || '').startsWith(t.wp + '|')).sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || risk(b.f, b.s) - risk(a.f, a.s));
+  return `<div class="bar"><button class="btn" data-go="tbm">← 목록</button><span class="sp"></span><button class="btn" data-act="printTbm" data-id="${t.id}">인쇄</button><button class="btn g" data-act="delItem" data-col="tbm" data-id="${t.id}">삭제</button></div>
+  <h2>TBM 일지 · ${esc(t.wp)}</h2>
+  <div class="r c4">${fld('일자', inp(b('date'), t.date, 'date'))}${fld('시간', inp(b('time'), t.time, 'time'))}${fld('작업장', sel(wps(), t.wp, `data-b="${b('wp')}" data-rerender`))}${fld('진행자', inp(b('leader'), t.leader))}</div>
+  <div class="r">${fld('오늘 작업 내용', ta(b('work'), t.work, 2))}</div>
+  <h3>유해·위험요인과 대책 <span class="small muted">(평가표에서 체크)</span></h3>
+  <div class="card">${hz.map(r => `<label class="chk"><input type="checkbox" data-hz="${t.id}|${r.id}" ${(t.haz || []).includes(r.id) ? 'checked' : ''}><span>${rk(r.f, r.s)} <span class="small muted">${esc(r.proc.split('|')[1])}</span> ${esc(r.hazard)}<br><span class="small">→ ${esc(r.measure || r.current || '대책 미입력')}</span></span></label>`).join('') || '<span class="muted small">이 작업장의 평가표 항목이 없습니다.</span>'}</div>
+  <div class="r">${fld('추가 위험요인 · 대책 (평가표에 없는 오늘만의 위험)', ta(b('extra'), t.extra, 2))}</div>
+  <div class="r c2"><label class="chk"><input type="checkbox" data-b="${b('health')}" ${t.health ? 'checked' : ''}><span>근로자 건강상태 확인</span></label><label class="chk"><input type="checkbox" data-b="${b('ppe')}" ${t.ppe ? 'checked' : ''}><span>보호구 착용 상태 확인</span></label></div>
+  <div class="r">${fld('전달 · 특이사항', ta(b('note'), t.note, 2))}</div>
+  ${attBlock('tbm', t)}`;
+}
+
+/* 교육 · 회의 */
+VIEWS.edu = () => {
+  if (S.id) { const e = S.events.find(x => x.id === S.id); if (e) return eduEdit(e); }
+  const list = S.events.filter(e => e.type === '교육' || e.type === '회의').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return `<div class="bar"><h2 style="margin:0">교육 · 회의</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="회의">+ 위험성평가 회의</button><button class="btn p" data-act="newEv" data-type="교육">+ 위험성평가 교육</button></div>
+  <div class="lst">${list.map(e => `<div class="it" data-go="edu/${e.id}"><b>${esc(e.date)}</b><span class="tag">${esc(e.type)}</span><span class="sp small">${esc(e.title || '')}</span><span class="small">서명 ${Object.keys(e.sigs || {}).filter(k => (e.att || []).includes(k)).length}/${(e.att || []).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+};
+function eduEdit(e) {
+  const b = f => `events|${e.id}|${f}`;
+  return `<div class="bar"><button class="btn" data-go="edu">← 목록</button><span class="sp"></span><button class="btn" data-act="printEv" data-id="${e.id}">인쇄</button><button class="btn g" data-act="delItem" data-col="events" data-id="${e.id}">삭제</button></div>
+  <h2>위험성평가 ${esc(e.type)}${e.type === '교육' ? ' 실시 결과 보고서' : '결과'}</h2>
+  <div class="r c4">${fld('일자', inp(b('date'), e.date, 'date'))}${fld('시작', inp(b('t1'), e.t1, 'time'))}${fld('종료', inp(b('t2'), e.t2, 'time'))}${fld('장소', inp(b('place'), e.place))}</div>
+  ${e.type === '교육' ? `<div class="r c2">${fld('강사', inp(b('teacher'), e.teacher))}${fld('교육 구분', inp(b('title'), e.title, 'text', 'placeholder="예: 정기 위험성평가 결과 교육"'))}</div>` : `<div class="r">${fld('회의 제목', inp(b('title'), e.title, 'text', 'placeholder="예: 2026년 위험성평가 실시 회의"'))}</div>`}
+  <div class="r">${fld(e.type === '교육' ? '교육 내용' : '회의 내용', ta(b('content'), e.content, 6))}</div>
+  ${e.type === '회의' ? `<div class="r">${fld('근로자대표 의견', ta(b('opinion'), e.opinion, 3))}</div>` : ''}
+  <div class="f" style="margin-top:8px"><span>${e.type === '교육' ? '교육' : '회의개최'} 사진 · 근거서류</span>${phStrip(b('photos'), e.photos, '사진')}</div>
+  ${attBlock('events', e)}`;
+}
+
+/* 수시평가 */
+VIEWS.adhoc = () => {
+  if (S.id) { const e = S.events.find(x => x.id === S.id); if (e) return adhocEdit(e); }
+  const list = S.events.filter(e => e.type === '수시').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return `<div class="bar"><h2 style="margin:0">수시 위험성평가</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="수시">+ 수시평가 기록</button></div>
+  <p class="small muted" style="margin-bottom:8px">실시계획서 5-다: 산업재해 발생, 작업장·설비·작업방법 변경, 정비·보수, 설비 신규 도입·이전, 원재료·화학물질 변경 시 작업 착수 전에 실시. 결과는 평가표에 반영됩니다.</p>
+  <div class="lst">${list.map(e => `<div class="it" data-go="adhoc/${e.id}"><b>${esc(e.date)}</b><span class="tag">${esc((e.reason || '').slice(0, 1))}</span><span class="sp small">${esc(e.target || '')}</span><span class="small muted">항목 ${S.rows.filter(r => r.ev === e.id).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+};
+function adhocEdit(e) {
+  const b = f => `events|${e.id}|${f}`;
+  const linked = S.rows.filter(r => r.ev === e.id).sort((a, b) => a.ord - b.ord);
+  return `<div class="bar"><button class="btn" data-go="adhoc">← 목록</button><span class="sp"></span><button class="btn" data-act="printEv" data-id="${e.id}">인쇄</button><button class="btn g" data-act="delItem" data-col="events" data-id="${e.id}">삭제</button></div>
+  <h2>수시 위험성평가 실시 기록</h2>
+  <div class="r c2">${fld('실시 일자', inp(b('date'), e.date, 'date'))}${fld('실시 사유', sel([['', '선택'], ...ADHOC], e.reason, `data-b="${b('reason')}"`))}</div>
+  <div class="r c2">${fld('대상 작업장 · 공정', sel(procOpts(), e.proc, `data-b="${b('proc')}"`))}${fld('대상 (설비·작업·물질)', inp(b('target'), e.target))}</div>
+  <div class="r">${fld('변경 · 발생 내용', ta(b('content'), e.content, 3))}</div>
+  <div class="r c2">${fld('평가 참여자', inp(b('members'), e.members, 'text', 'placeholder="관리감독자, 해당 작업 근로자 등"'))}${fld('평가 결과 요약', inp(b('result'), e.result))}</div>
+  <div class="f" style="margin-top:8px"><span>사진</span>${phStrip(b('photos'), e.photos, '사진')}</div>
+  <div class="row-h" style="margin:16px 0 8px"><b>평가 항목 (평가표에 반영됨)</b><span class="sp"></span><button class="btn p" data-act="addAdhocRow" data-id="${e.id}">+ 항목 추가</button></div>
+  ${linked.map(rowCard).join('') || '<p class="muted small">아직 항목이 없습니다.</p>'}`;
+}
+
+/* 중량물 */
+const HEAVY_CHK = ['안전화·장갑 등 보호구 착용','대차·운반구 사용 (인력 운반 최소화)','2인 1조 작업 (1인 25kg 이상 금지)','운반 경로 정리·통로 확보','적재 높이·고정 상태 확인','작업 전 허리 스트레칭','작업 지휘자 지정'];
+VIEWS.heavy = () => {
+  if (S.id) { const e = S.events.find(x => x.id === S.id); if (e) return heavyEdit(e); }
+  const list = S.events.filter(e => e.type === '중량물').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return `<div class="bar"><h2 style="margin:0">중량물 취급 작업계획서</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="중량물">+ 작업계획서</button></div>
+  <p class="small muted" style="margin-bottom:8px">실시계획서 8-바: 중량물 이송·취급 작업은 작업계획서를 작성하고 그 내용을 위험성평가에 반영.</p>
+  <div class="lst">${list.map(e => `<div class="it" data-go="heavy/${e.id}"><b>${esc(e.date)}</b><span class="sp small">${esc(e.title || '')}</span><span class="small muted">${esc(e.weight || '')}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+};
+function heavyEdit(e) {
+  const b = f => `events|${e.id}|${f}`;
+  return `<div class="bar"><button class="btn" data-go="heavy">← 목록</button><span class="sp"></span><button class="btn" data-act="printEv" data-id="${e.id}">인쇄</button><button class="btn g" data-act="delItem" data-col="events" data-id="${e.id}">삭제</button></div>
+  <h2>중량물 취급 작업계획서</h2>
+  <div class="r c2">${fld('작업명', inp(b('title'), e.title))}${fld('작성일', inp(b('date'), e.date, 'date'))}</div>
+  <div class="r c3">${fld('작업 장소', inp(b('place'), e.place))}${fld('작업 기간·시간', inp(b('period'), e.period))}${fld('관련 공정', sel(procOpts(), e.proc, `data-b="${b('proc')}"`))}</div>
+  <div class="r c3">${fld('중량물 종류', inp(b('item'), e.item))}${fld('중량 (kg)', inp(b('weight'), e.weight))}${fld('형상·크기', inp(b('shape'), e.shape))}</div>
+  <div class="r c3">${fld('운반 방법', sel(['인력', '대차', '지게차', '크레인·호이스트', '기타'], e.method, `data-b="${b('method')}"`))}${fld('작업 지휘자', inp(b('chief'), e.chief))}${fld('작업 인원', inp(b('workers'), e.workers))}</div>
+  <div class="r">${fld('운반 경로', ta(b('route'), e.route, 2))}</div>
+  <div class="r">${fld('예상 위험요인', ta(b('risks'), e.risks, 3))}</div>
+  <h3>안전대책 확인</h3>
+  <div class="card">${HEAVY_CHK.map((c, i) => `<label class="chk"><input type="checkbox" data-b="${b('chk.' + i)}" ${(e.chk || {})[i] ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('')}</div>
+  <div class="r">${fld('추가 안전대책', ta(b('measures'), e.measures, 3))}</div>
+  <div class="r c2">${fld('작성자', inp(b('writer'), e.writer))}${fld('확인자 (관리감독자)', inp(b('checker'), e.checker))}</div>
+  <div class="f" style="margin-top:8px"><span>사진</span>${phStrip(b('photos'), e.photos, '사진')}</div>
+  ${attBlock('events', e)}`;
+}
+
+/* 문서 */
+const DOCDEF = () => window.DOCS_SEED.map(d => ({ id: d.id, title: d.title }));
+VIEWS.docs = () => {
+  const cur = S.f.doc; const d = DOCDEF().find(x => x.id === cur) || DOCDEF()[0];
+  const html = S.docs[d.id] ?? (window.DOCS_SEED.find(x => x.id === d.id) || {}).html ?? '';
+  return `<div class="bar"><h2 style="margin:0">계획서 · 문서</h2><span class="sp"></span><button class="btn" data-act="printDoc">이 문서 인쇄</button><button class="btn p" data-act="printAllDocs">실시계획서 전체 인쇄</button></div>
+  <div class="chips">${DOCDEF().map(x => `<a data-doc="${x.id}" class="${x.id === d.id ? 'on' : ''}">${esc(x.title)}</a>`).join('')}</div>
+  <div class="tb"><button class="btn s" data-cmd="bold"><b>굵게</b></button><button class="btn s" data-act="rowAdd">표 행 추가</button><button class="btn s" data-act="rowDel">표 행 삭제</button><span class="sp"></span><span class="small muted" style="align-self:center">글자를 클릭해서 바로 고치면 자동 저장됩니다</span><button class="btn s g" data-act="docReset">원본으로 되돌리기</button></div>
+  <div class="doc docpage" contenteditable="true" spellcheck="false" id="docEd" data-sec="${d.id}">${html}</div>`;
+};
+function bindDoc() {
+  const ed = $('#docEd'); if (!ed) return;
+  ed.addEventListener('input', () => { S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec, 1000); });
+  ed.addEventListener('paste', e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); document.execCommand('insertText', false, t); });
+}
+
+/* 설정 */
+VIEWS.set = () => {
+  const m = S.meta;
+  return `<h2>설정</h2>
+  <div class="card"><div class="r c3" style="margin-top:0">${fld('사업장', inp('meta||company', m.company))}${fld('대표자', inp('meta||ceo', m.ceo))}${fld('TBM 기본 진행자', inp('meta||tbmLeader', m.tbmLeader))}</div></div>
+  <h3>인원 명단 <span class="small muted">(TBM·교육·회의 참석자 명단에 쓰입니다. 작업장을 넣으면 그 작업장 TBM 기본 참석자가 됩니다)</span></h3>
+  <div class="scroll"><table class="t"><tr><th>부서</th><th>직책</th><th>성명</th><th>작업장</th><th></th></tr>
+  ${m.people.map((p, i) => `<tr><td>${inp(`meta||people.${i}.dept`, p.dept)}</td><td>${inp(`meta||people.${i}.pos`, p.pos)}</td><td>${inp(`meta||people.${i}.name`, p.name)}</td><td>${sel([['', '-'], ...wps()], p.wp, `data-b="meta||people.${i}.wp"`)}</td><td><button class="btn s g" data-act="delPerson" data-i="${i}">삭제</button></td></tr>`).join('')}</table></div>
+  <div class="bar" style="margin-top:6px"><button class="btn" data-act="addPerson">+ 인원 추가</button><span class="small muted">${m.people.length}명</span></div>
+  <h3>작업장 · 공정 분류</h3>
+  <div class="scroll"><table class="t"><tr><th>작업장</th><th>공정</th><th>주요 작업</th><th>주요 설비·물질</th><th></th></tr>
+  ${m.procs.map((p, i) => `<tr><td>${inp(`meta||procs.${i}.wp`, p.wp, 'text', 'data-proc')}</td><td>${inp(`meta||procs.${i}.proc`, p.proc, 'text', 'data-proc')}</td><td>${inp(`meta||procs.${i}.task`, p.task)}</td><td>${inp(`meta||procs.${i}.equip`, p.equip)}</td><td><button class="btn s g" data-act="delProc" data-i="${i}">삭제</button></td></tr>`).join('')}</table></div>
+  <div class="bar" style="margin-top:6px"><button class="btn" data-act="addProc">+ 공정 추가</button><span class="small muted">작업장·공정 이름을 바꾸면 평가표 항목도 함께 바뀝니다</span></div>
+  <h3>연도 · 백업</h3>
+  <div class="card"><div class="bar" style="margin:0"><button class="btn p" data-act="copyNext">${S.year + 1}년으로 복사해서 시작</button><button class="btn" data-act="exportJson">전체 백업 내려받기</button><button class="btn" data-act="importJson">백업 불러오기</button></div>
+  <p class="small muted" style="margin-top:8px">다음 연도 복사: 인원·공정·문서·평가표를 가져옵니다. 평가표는 개선 완료된 항목의 잔류 위험도가 새 해의 시작 위험도가 되고, 감소대책·사진은 비워집니다. TBM·교육·회의 기록은 가져오지 않습니다.</p>
+  <p class="small muted">저장 위치: ${MODE === 'cloud' ? '서버 (어느 기기에서 열어도 같은 자료)' : '<b>이 브라우저에만 저장됨</b> — 서버 연결이 안 되어 있습니다'} · ${VERSION}</p></div>`;
+};
+
+/* ============ 입력 처리 ============ */
+function setPath(o, p, v) { const ks = p.split('.'); let x = o; for (let i = 0; i < ks.length - 1; i++) { if (x[ks[i]] == null) x[ks[i]] = {}; x = x[ks[i]]; } x[ks[ks.length - 1]] = v; }
+function getPath(o, p) { return p.split('.').reduce((x, k) => x == null ? x : x[k], o); }
+function onBind(el) {
+  const [col, id, path] = el.dataset.b.split('|');
+  const o = getObj(col, id); if (!o) return;
+  let v = el.type === 'checkbox' ? el.checked : el.value;
+  if (el.hasAttribute('data-n')) v = +v;
+  const old = getPath(o, path);
+  setPath(o, path, v);
+  if (col === 'rows') {
+    delete o.draft;
+    if (path === 'f' || path === 's' || path === 'f2' || path === 's2') {
+      const a = $('#rk-' + id); if (a) a.innerHTML = rk(o.f, o.s);
+      const b2 = $('#rk2-' + id); if (b2) b2.innerHTML = risk(o.f2, o.s2) ? rk(o.f2, o.s2) : '<span class="muted small">개선 후 입력</span>';
+      const c = $('#row-' + id); if (c) c.classList.toggle('hi', risk(o.f, o.s) >= 9);
+    }
+  }
+  if (col === 'meta' && el.hasAttribute('data-proc')) {
+    // 공정 이름 변경 → 평가표·기록 키 따라 바꾸기
+    const i = +path.split('.')[1], p = S.meta.procs[i];
+    const field = path.split('.')[2];
+    const oldKey = field === 'wp' ? old + '|' + p.proc : p.wp + '|' + old, newKey = procKey(p);
+    [...S.rows.map(r => ['rows', r]), ...S.events.map(e => ['events', e])].forEach(([c, x]) => { if (x.proc === oldKey) { x.proc = newKey; queueSave(c, x.id); } });
+    if (field === 'wp') { S.tbm.forEach(t => { if (t.wp === old) { t.wp = v; queueSave('tbm', t.id); } }); S.meta.people.forEach(pp => { if (pp.wp === old && !S.meta.procs.some(q => q.wp === old)) pp.wp = v; }); }
+  }
+  queueSave(col, id);
+  if (el.hasAttribute('data-rerender')) route();
+}
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.b) return onBind(el);
+  if (el.dataset.flt) { S.f[el.dataset.flt] = el.value; if (el.dataset.flt === 'wp') S.f.proc = ''; route(); return; }
+  if (el.dataset.hz) { const [tid, rid] = el.dataset.hz.split('|'); const t = S.tbm.find(x => x.id === tid); t.haz ||= []; t.haz = el.checked ? [...new Set([...t.haz, rid])] : t.haz.filter(x => x !== rid); queueSave('tbm', tid); return; }
+  if (el.dataset.addatt) { const [col, id] = el.dataset.addatt.split('|'); const o = getObj(col, id); if (el.value) { o.att = [...(o.att || []), el.value]; queueSave(col, id); route(); } return; }
+  if (el.id === 'yearSel') { flushAll().then(() => { location.hash = 'dash'; loadYear(+el.value); }); }
+});
+document.addEventListener('input', e => { const el = e.target; if (el.dataset.b && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|number)$/.test(el.type)))) onBind(el); });
+
+/* 사진 추가/보기 */
+let phTarget = null;
+$('#fileIn').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = ''; if (!phTarget || !files.length) return;
+  const [col, id, path] = phTarget.split('|'); const o = getObj(col, id);
+  setSt('사진 올리는 중…');
+  for (const f of files) {
+    try { const data = await compress(f); const pid = uid(); await dPut('ra_photos', pid, { year: S.year, data, at: Date.now() }); phCache.set(pid, Promise.resolve(data));
+      const arr = getPath(o, path) || []; arr.push(pid); setPath(o, path, arr); }
+    catch (err) { toast('사진 저장 실패: ' + err.message, 5000); }
+  }
+  if (col === 'rows') delete o.draft;
+  await saveNow(col, id); route();
+});
+function photoModal(key, pid) {
+  const [col, id, path] = key.split('|');
+  modal(`<img class="big" data-ph="${pid}" alt=""><div class="acts"><button class="btn g" data-m="del">사진 삭제</button><button class="btn p" data-m="close">닫기</button></div>`, async (act, close) => {
+    if (act === 'del') { const o = getObj(col, id); setPath(o, path, (getPath(o, path) || []).filter(x => x !== pid)); await saveNow(col, id); dDel('ra_photos', pid).catch(() => {}); close(); route(); }
+    else close();
+  });
+}
+
+/* 모달 */
+function modal(html, onAct) {
+  const m = document.createElement('div'); m.className = 'mo'; m.innerHTML = `<div class="box">${html}</div>`;
+  document.body.appendChild(m); hydrate(m);
+  const close = () => m.remove();
+  m.addEventListener('click', e => { if (e.target === m) close(); const b = e.target.closest('[data-m]'); if (b) onAct(b.dataset.m, close, m); });
+  return m;
+}
+function ask(title, ph = '', val = '') {
+  return new Promise(res => {
+    const m = modal(`<h3>${esc(title)}</h3><input class="inp" id="askIn" placeholder="${esc(ph)}" value="${esc(val)}"><div class="acts"><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">확인</button></div>`,
+      (a, close, mm) => { const v = mm.querySelector('#askIn').value; close(); res(a === 'ok' ? v : null); });
+    const i = m.querySelector('#askIn'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { m.remove(); res(i.value); } });
+  });
+}
+function confirmBox(title, msg = '') {
+  return new Promise(res => modal(`<h3>${esc(title)}</h3><p class="small">${esc(msg)}</p><div class="acts"><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">확인</button></div>`, (a, close) => { close(); res(a === 'ok'); }));
+}
+function signPad(name) {
+  return new Promise(res => {
+    const m = modal(`<h3>${esc(name)} 서명</h3><canvas id="sigC" width="600" height="240"></canvas><div class="acts"><button class="btn g" data-m="clear">지우기</button><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">저장</button></div>`, (a, close, mm) => {
+      if (a === 'clear') { ctx.clearRect(0, 0, c.width, c.height); drew = false; return; }
+      if (a === 'ok') { if (!drew) { toast('서명을 해주세요'); return; } const o = document.createElement('canvas'); o.width = 300; o.height = 120; const x = o.getContext('2d'); x.drawImage(c, 0, 0, 300, 120); close(); res(o.toDataURL('image/png')); return; }
+      close(); res(null);
+    });
+    const c = m.querySelector('#sigC'), ctx = c.getContext('2d'); let drew = false, down = false;
+    ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#000';
+    const pt = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; };
+    c.addEventListener('pointerdown', e => { down = true; c.setPointerCapture(e.pointerId); const [x, y] = pt(e); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .1, y + .1); ctx.stroke(); drew = true; });
+    c.addEventListener('pointermove', e => { if (!down) return; const [x, y] = pt(e); ctx.lineTo(x, y); ctx.stroke(); });
+    c.addEventListener('pointerup', () => down = false); c.addEventListener('pointercancel', () => down = false);
+  });
+}
+
+/* 클릭 */
+document.addEventListener('click', async e => {
+  const t = e.target;
+  const g = t.closest('[data-go]'); if (g && !t.closest('input,select,textarea')) { go(...g.dataset.go.split('/')); return; }
+  const ap = t.closest('[data-addph]'); if (ap) { phTarget = ap.dataset.addph; $('#fileIn').click(); return; }
+  const im = t.closest('img[data-phk]'); if (im) { photoModal(im.dataset.phk, im.dataset.ph); return; }
+  const sg = t.closest('[data-sign]'); if (sg) { const [col, id, n] = sg.dataset.sign.split('|'); const d = await signPad(n); if (d) { const o = getObj(col, id); o.sigs ||= {}; o.sigs[n] = d; await saveNow(col, id); route(); } return; }
+  const rm = t.closest('[data-rmatt]'); if (rm) { const [col, id, n] = rm.dataset.rmatt.split('|'); const o = getObj(col, id); if ((o.sigs || {})[n] && !(await confirmBox(n + ' 님을 참석자에서 뺄까요?', '서명도 함께 지워집니다.'))) return; o.att = (o.att || []).filter(x => x !== n); if (o.sigs) delete o.sigs[n]; await saveNow(col, id); route(); return; }
+  const dc = t.closest('[data-doc]'); if (dc) { await flushAll(); S.f.doc = dc.dataset.doc; route(); return; }
+  const cm = t.closest('[data-cmd]'); if (cm) { e.preventDefault(); document.execCommand(cm.dataset.cmd); const ed = $('#docEd'); if (ed) { S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec); } return; }
+  const a = t.closest('[data-act]'); if (!a) return;
+  const fn = ACT[a.dataset.act]; if (fn) { try { await fn(a); } catch (err) { console.error(err); toast('오류: ' + err.message, 5000); } }
+});
+document.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd],[data-act=rowAdd],[data-act=rowDel]')) e.preventDefault(); });
+
+/* ============ 동작 ============ */
+const ACT = {};
+ACT.addRow = async () => {
+  const r = newRow({ proc: S.f.proc || (S.f.wp ? procKey(S.meta.procs.find(p => p.wp === S.f.wp)) : '') });
+  S.rows.push(r); await saveNow('rows', r.id); S.f.view = 'all'; route();
+  const c = $('#row-' + r.id); if (c) { c.scrollIntoView({ block: 'center' }); c.querySelector('select').focus(); }
+};
+ACT.delRow = async a => {
+  const r = S.rows.find(x => x.id === a.dataset.id);
+  const why = await ask('삭제 사유', '예: 현재 수행하지 않는 작업 / 사용하지 않는 물질 / 중복', r.draft ? '초안 항목 정리' : '');
+  if (why === null) return;
+  S.meta.deletions.push({ at: today(), proc: r.proc, hazard: r.hazard, risk: risk(r.f, r.s), why });
+  S.rows = S.rows.filter(x => x.id !== r.id);
+  await dDel('ra_rows', r.id); await saveNow('meta'); toast('삭제했습니다 (삭제 이력에 기록)');
+  if (S.tab === 'rows' && S.id) go('rows'); else route();
+};
+ACT.showDel = () => {
+  const d = S.meta.deletions;
+  modal(`<h3>평가표 삭제 이력</h3><p class="small muted" style="margin-bottom:8px">지적사항 7 (불필요 작업·위험물 삭제) 증빙</p>${d.length ? `<table class="t"><tr><th>일자</th><th>공정</th><th>유해·위험요인</th><th>사유</th></tr>${d.map(x => `<tr><td>${esc(x.at)}</td><td>${esc(procLabel(x.proc))}</td><td>${esc(x.hazard)}</td><td>${esc(x.why)}</td></tr>`).join('')}</table>` : '<p class="muted">없음</p>'}<div class="acts"><button class="btn p" data-m="c">닫기</button></div>`, (a, c) => c());
+};
+ACT.newTbm = async a => {
+  const wp = a.dataset.wp, prev = S.tbm.filter(t => t.wp === wp).sort((x, y) => (y.date || '').localeCompare(x.date || '') || (y.at || 0) - (x.at || 0))[0];
+  const dup = S.tbm.find(t => t.wp === wp && t.date === today());
+  if (dup && !(await confirmBox(`오늘 ${wp} TBM이 이미 있습니다`, '하나 더 만들까요? (취소하면 기존 일지를 엽니다)'))) { go('tbm', dup.id); return; }
+  const def = S.meta.people.filter(p => p.wp === wp).map(p => p.name);
+  const leader = S.meta.tbmLeader || '';
+  const t = { id: uid(), year: S.year, at: Date.now(), date: today(), time: '08:30', wp, leader, work: prev?.work || '', haz: prev?.haz ? [...prev.haz] : S.rows.filter(r => (r.proc || '').startsWith(wp + '|') && risk(r.f, r.s) >= 9).map(r => r.id),
+    extra: prev?.extra || '', note: '', health: false, ppe: false, att: prev?.att ? [...prev.att] : [...new Set([leader, ...def].filter(Boolean))], sigs: {} };
+  S.tbm.push(t); await saveNow('tbm', t.id); go('tbm', t.id);
+};
+ACT.newEv = async a => {
+  const type = a.dataset.type, all = S.meta.people.map(p => p.name);
+  const base = { id: uid(), year: S.year, at: Date.now(), type, date: today(), photos: [], sigs: {} };
+  const o = type === '교육' ? { ...base, t1: '', t2: '', place: '2층 사무실', teacher: '김은식', title: '위험성평가 교육', content: EDU_DEFAULT, att: all }
+    : type === '회의' ? { ...base, t1: '', t2: '', place: '2층 사무실', title: `${S.year}년 위험성평가 실시 회의`, content: MEET_DEFAULT, opinion: '', att: all }
+    : type === '수시' ? { ...base, reason: '', proc: '', target: '', content: '', members: '', result: '' }
+    : { ...base, title: 'SUS 소재 하역·적재', place: '가공실', period: '', proc: S.meta.procs[0] ? procKey(S.meta.procs[0]) : '', item: 'SUS 소재', weight: '', shape: '', method: '대차', chief: '', workers: '', route: '', risks: '', chk: {}, measures: '', writer: '', checker: '', att: [] };
+  S.events.push(o); await saveNow('events', o.id);
+  go(type === '수시' ? 'adhoc' : type === '중량물' ? 'heavy' : 'edu', o.id);
+};
+ACT.addAdhocRow = async a => {
+  const e = S.events.find(x => x.id === a.dataset.id);
+  const r = newRow({ proc: e.proc || '', src: '수시', ev: e.id, task: e.target || '' });
+  S.rows.push(r); await saveNow('rows', r.id); route();
+  const c = $('#row-' + r.id); if (c) c.scrollIntoView({ block: 'center' });
+};
+ACT.delItem = async a => {
+  const col = a.dataset.col, id = a.dataset.id;
+  if (!(await confirmBox('이 기록을 삭제할까요?', '서명·내용이 모두 지워집니다.'))) return;
+  const o = getObj(col, id);
+  (o.photos || []).forEach(p => dDel('ra_photos', p).catch(() => {}));
+  S[col] = S[col].filter(x => x.id !== id); await dDel('ra_' + col, id);
+  if (col === 'events') S.rows.filter(r => r.ev === id).forEach(r => { r.ev = ''; queueSave('rows', r.id); });
+  go(col === 'tbm' ? 'tbm' : o.type === '수시' ? 'adhoc' : o.type === '중량물' ? 'heavy' : 'edu');
+};
+ACT.addPerson = async () => { S.meta.people.push({ dept: '', pos: '', name: '', wp: '' }); await saveNow('meta'); route(); };
+ACT.delPerson = async a => { S.meta.people.splice(+a.dataset.i, 1); await saveNow('meta'); route(); };
+ACT.addProc = async () => { S.meta.procs.push({ wp: '', proc: '', task: '', equip: '' }); await saveNow('meta'); route(); };
+ACT.delProc = async a => { const p = S.meta.procs[+a.dataset.i]; const n = S.rows.filter(r => r.proc === procKey(p)).length; if (n && !(await confirmBox('이 공정을 삭제할까요?', `평가표 항목 ${n}개가 이 공정에 있습니다. 항목은 남고 공정만 비워집니다.`))) return; S.meta.procs.splice(+a.dataset.i, 1); await saveNow('meta'); route(); };
+
+/* 문서 편집 도구 */
+function curCell() { const s = getSelection(); if (!s.rangeCount) return null; let n = s.anchorNode; while (n && n.nodeType !== 1) n = n.parentNode; return n && n.closest ? n.closest('#docEd tr') : null; }
+ACT.rowAdd = () => { const tr = curCell(); if (!tr) return toast('표 안을 먼저 클릭하세요'); const c = tr.cloneNode(true); c.querySelectorAll('td,th').forEach(td => { td.removeAttribute('rowspan'); td.innerHTML = '&nbsp;'; }); tr.after(c); const ed = $('#docEd'); S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec); };
+ACT.rowDel = () => { const tr = curCell(); if (!tr) return toast('표 안을 먼저 클릭하세요'); tr.remove(); const ed = $('#docEd'); S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec); };
+ACT.docReset = async () => { const sec = S.f.doc || 'cover'; if (!(await confirmBox('원본으로 되돌릴까요?', '이 문서에서 고친 내용이 처음 올린 계획서 내용으로 바뀝니다.'))) return; S.docs[sec] = window.DOCS_SEED.find(x => x.id === sec).html; await saveNow('docs', sec); route(); };
+
+/* 연도 */
+ACT.copyNext = async () => copyYear(S.year, S.year + 1);
+ACT.copyFrom = async a => copyYear(+a.dataset.y, +a.dataset.y + 1);
+ACT.blankYear = async a => { const y = +a.dataset.y; const m = seedMeta(y); m.findings = []; await dPut('ra_meta', String(y), m); for (const d of window.DOCS_SEED) await dPut('ra_docs', y + '_' + d.id, { year: y, sec: d.id, html: d.html.replaceAll('2026', String(y)), at: Date.now() }); addYearOpt(y); loadYear(y); };
+async function copyYear(from, to) {
+  if (await dGet('ra_meta', String(to))) return toast(`${to}년 자료가 이미 있습니다`);
+  const fm = await dGet('ra_meta', String(from)); if (!fm) return toast(`${from}년 자료가 없습니다`);
+  if (!(await confirmBox(`${from}년 → ${to}년 복사`, '인원·공정·문서·평가표를 복사합니다.'))) return;
+  setSt('복사 중…');
+  const m = { ...clone(fm), year: to, findings: [], deletions: [], created: Date.now() };
+  await dPut('ra_meta', String(to), m);
+  const [rows, docs] = await Promise.all([dList('ra_rows', from), dList('ra_docs', from)]);
+  let t = Date.now();
+  for (const r of rows) { const done = r.done && r.f2 && r.s2; const n = { ...r, id: uid(), year: to, f: done ? r.f2 : r.f, s: done ? r.s2 : r.s, measure: done ? '' : r.measure, owner: '', due: '', f2: 0, s2: 0, done: '', before: [], after: [], src: '정기', ev: '', ord: t++ }; delete n.draft; await dPut('ra_rows', n.id, n); }
+  for (const d of docs) await dPut('ra_docs', to + '_' + d.sec, { year: to, sec: d.sec, html: (d.html || '').replaceAll(String(from) + '년', String(to) + '년').replaceAll(String(from) + '.', String(to) + '.'), at: Date.now() });
+  addYearOpt(to); $('#yearSel').value = to; location.hash = 'dash'; await loadYear(to); toast(`${to}년을 시작했습니다`);
+}
+function addYearOpt(y) { const s = $('#yearSel'); if (![...s.options].some(o => +o.value === y)) { s.add(new Option(y + '년', y)); [...s.options].sort((a, b) => a.value - b.value).forEach(o => s.add(o)); } s.value = y; }
+
+/* 백업 */
+ACT.exportJson = async () => {
+  await flushAll();
+  const photos = {}; const ids = new Set();
+  const collect = o => { if (!o || typeof o !== 'object') return; for (const [k, v] of Object.entries(o)) { if (['photos', 'before', 'after'].includes(k) && Array.isArray(v)) v.forEach(i => ids.add(i)); else if (typeof v === 'object') collect(v); } };
+  collect(S.meta); S.rows.forEach(collect); S.events.forEach(collect);
+  for (const i of ids) photos[i] = await getPhoto(i);
+  const data = { app: 'ints-risk', version: VERSION, year: S.year, at: new Date().toISOString(), meta: S.meta, rows: S.rows, tbm: S.tbm, events: S.events, docs: S.docs, photos };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  a.download = `위험성평가_${S.year}_백업_${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+ACT.importJson = () => $('#jsonIn').click();
+$('#jsonIn').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text()); if (d.app !== 'ints-risk') throw new Error('위험성평가 백업 파일이 아닙니다');
+    if (!(await confirmBox(`${d.year}년 백업을 불러올까요?`, `${d.at} 백업. 같은 연도의 현재 자료를 백업 내용으로 덮어씁니다.`))) return;
+    setSt('불러오는 중…'); const y = d.year;
+    for (const c of ['rows', 'tbm', 'events']) { for (const o of await dList('ra_' + c, y)) await dDel('ra_' + c, o.id); for (const o of d[c] || []) await dPut('ra_' + c, o.id, o); }
+    await dPut('ra_meta', String(y), d.meta);
+    for (const [sec, html] of Object.entries(d.docs || {})) await dPut('ra_docs', y + '_' + sec, { year: y, sec, html, at: Date.now() });
+    for (const [id, data] of Object.entries(d.photos || {})) if (data) await dPut('ra_photos', id, { year: y, data, at: Date.now() });
+    phCache.clear(); addYearOpt(y); await loadYear(y); toast('백업을 불러왔습니다');
+  } catch (err) { toast('불러오기 실패: ' + err.message, 5000); }
+});
+
+/* ============ 인쇄 ============ */
+async function printHTML(html) {
+  await flushAll();
+  const p = $('#print'); p.innerHTML = html;
+  const imgs = [...p.querySelectorAll('img[data-ph]')];
+  await Promise.all(imgs.map(async im => { im.src = await getPhoto(im.dataset.ph) || ''; }));
+  await Promise.all([...p.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
+  setTimeout(() => { window.print(); }, 50);
+}
+window.addEventListener('afterprint', () => { $('#print').innerHTML = ''; });
+const head = (title, sub = '') => `<h1>${esc(title)}</h1>${sub ? `<p class="c small">${sub}</p>` : ''}`;
+const sigTable = (o) => {
+  const names = o.att || [], cells = names.map(n => `<td class="c">${esc(pLabel(n))}</td><td class="c">${esc(n)}</td><td class="c" style="width:22%">${(o.sigs || {})[n] ? `<img class="sig" src="${o.sigs[n]}">` : ''}</td>`);
+  const rows = []; for (let i = 0; i < cells.length; i += 2) rows.push(`<tr>${cells[i]}${cells[i + 1] || '<td></td><td></td><td></td>'}</tr>`);
+  const signed = names.filter(n => (o.sigs || {})[n]).length;
+  return `<table><tr><th>소속/직책</th><th>성 명</th><th>서명</th><th>소속/직책</th><th>성 명</th><th>서명</th></tr>${rows.join('')}</table><p class="rt small">참석 ${signed}명 / 대상 ${names.length}명</p>`;
+};
+const phPrint = ids => (ids || []).length ? `<div class="phs">${ids.map(i => `<img data-ph="${i}">`).join('')}</div>` : '';
+const timeStr = o => o.t1 ? ` ${o.t1}${o.t2 ? ' ~ ' + o.t2 : ''}` : '';
+
+function procTableHTML() {
+  return `<h2>■ 평가대상 공정 분류</h2><table><tr><th>평가 작업장</th><th>공정</th><th>주요 작업</th><th>주요 설비·물질</th><th>평가 항목 수</th></tr>
+  ${S.meta.procs.map(p => `<tr><td class="c">${esc(p.wp)}</td><td class="c">${esc(p.proc)}</td><td>${esc(p.task)}</td><td>${esc(p.equip)}</td><td class="c">${S.rows.filter(r => r.proc === procKey(p)).length}</td></tr>`).join('')}</table>`;
+}
+ACT.printRows = () => {
+  const rows = [...S.rows].sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || a.ord - b.ord);
+  const groups = []; rows.forEach(r => { const g = groups[groups.length - 1]; if (g && g.k === r.proc) g.list.push(r); else groups.push({ k: r.proc, list: [r] }); });
+  let n = 0;
+  const body = groups.map(g => { const p = S.meta.procs.find(x => procKey(x) === g.k);
+    return `<tr><td colspan="14" style="font-weight:700">[${esc(procLabel(g.k) || '공정 미지정')}]${p ? ` 주요 작업: ${esc(p.task)} / 설비·물질: ${esc(p.equip)}` : ''}</td></tr>` +
+      g.list.map(r => { const R = risk(r.f, r.s), R2 = risk(r.f2, r.s2); return `<tr><td class="c">${++n}</td><td>${esc(r.task)}</td><td>${nl(r.hazard)}</td><td class="c">${esc(r.type)}</td><td>${nl(r.current)}</td><td class="c">${r.f}</td><td class="c">${r.s}</td><td class="c"><b>${R}</b><br>${grade(R)}</td><td>${nl(r.measure)}</td><td class="c">${esc(r.owner)}</td><td class="c">${esc(r.due)}</td><td class="c">${R2 ? `${R2}<br>${grade(R2)}` : ''}</td><td class="c">${esc(r.done)}</td><td class="c">${r.src === '수시' ? '수시' : ''}</td></tr>`; }).join(''); }).join('');
+  printHTML(`<div class="land small">${head(`${S.year}년 위험성평가표`, `${esc(S.meta.company)} · 평가방법: 빈도(1~5) × 강도(1~4) · 출력 ${today()}`)}
+  ${procTableHTML()}
+  <h2>■ 위험성평가 결과</h2>
+  <table><colgroup>${[3,8,16,6,11,3.5,3.5,5.5,16,6,7.5,6,7.5,4].map(w=>`<col style="width:${w}%">`).join('')}</colgroup><tr><th>No</th><th>세부 작업</th><th>유해·위험요인</th><th>재해형태</th><th>현재 안전조치</th><th>빈도</th><th>강도</th><th>위험도</th><th>감소대책</th><th>담당</th><th>기한</th><th>개선 후<br>위험도</th><th>완료일</th><th>구분</th></tr>${body}</table>
+  <p class="small">※ 위험도 9~11 약간높음 · 12~15 높음 · 16~20 매우높음: 감소대책 수립·실행 대상 (실시계획서 6-다 4단계)</p>
+  ${S.meta.deletions.length ? `<h2>■ 평가 대상 제외(삭제) 이력</h2><table><tr><th>일자</th><th>공정</th><th>유해·위험요인</th><th>사유</th></tr>${S.meta.deletions.map(x => `<tr><td class="c">${esc(x.at)}</td><td>${esc(procLabel(x.proc))}</td><td>${esc(x.hazard)}</td><td>${esc(x.why)}</td></tr>`).join('')}</table>` : ''}
+  <table style="width:40%;margin-left:auto;margin-top:10px"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:16mm"></td><td></td><td></td></tr></table></div>`);
+};
+ACT.printPost = () => {
+  const rows = S.rows.filter(r => risk(r.f, r.s) >= 9 || r.measure).sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || risk(b.f, b.s) - risk(a.f, a.s));
+  printHTML(`<div class="land">${head(`${S.year}년 위험성평가 결과 알림`, `${esc(S.meta.company)} · 게시일 ${kdate(today())}`)}
+  <p>당사는 ${S.year}년 위험성평가를 실시하였으며, 주요 유해·위험요인과 감소대책, 개선 후 남아 있는 위험(잔류 위험성)을 다음과 같이 알립니다. 작업 전 반드시 확인하고 안전수칙을 지켜 주십시오.</p>
+  <table><tr><th>작업장 · 공정</th><th>주요 유해·위험요인</th><th>위험도</th><th>감소대책</th><th>잔류 위험성</th><th>근로자 준수사항</th></tr>
+  ${rows.map(r => { const R = risk(r.f, r.s), R2 = risk(r.f2, r.s2); return `<tr><td>${esc(procLabel(r.proc))}</td><td>${nl(r.hazard)}</td><td class="c">${R} ${grade(R)}</td><td>${nl(r.measure)}</td><td class="c">${R2 ? R2 + ' ' + grade(R2) : (r.done ? '' : '개선 진행중')}</td><td>${nl(r.current)}</td></tr>`; }).join('')}</table>
+  <p class="small">평가 항목 전체 ${S.rows.length}개 중 위험도 9 이상 ${S.rows.filter(r => risk(r.f, r.s) >= 9).length}개 · 문의: 위험성평가 담당자</p>
+  <p class="rt" style="margin-top:14px"><b>${esc(S.meta.company)} 대표 ${esc(S.meta.ceo)}</b></p></div>`);
+};
+ACT.printFind = () => {
+  const F = S.meta.findings;
+  printHTML(`${head('2025년 위험성평가 사후점검 지적사항 개선 결과', `${esc(S.meta.company)} · 점검일 2025.07.30 · 작성 ${kdate(today())}`)}
+  <table><tr><th style="width:5%">No</th><th style="width:22%">지적사항</th><th>개선 내용</th><th style="width:10%">담당</th><th style="width:12%">완료일</th><th style="width:8%">상태</th></tr>
+  ${F.map(f => `<tr><td class="c">${f.no}</td><td>${esc(f.title)}<br><span class="small">${esc(f.detail)}</span></td><td>${nl(f.action)}</td><td class="c">${esc(f.owner)}</td><td class="c">${esc(f.due)}</td><td class="c">${esc(f.status)}</td></tr>`).join('')}</table>
+  ${F.filter(f => (f.photos || []).length).map(f => `<div class="bk"><h2>${f.no}. ${esc(f.title)} — 증빙</h2>${phPrint(f.photos)}</div>`).join('')}`);
+};
+function tbmHTML(t) {
+  const hz = (t.haz || []).map(id => S.rows.find(r => r.id === id)).filter(Boolean);
+  return `<div class="bk">${head('TBM (작업 전 안전점검회의) 일지')}
+  <table><tr><th style="width:14%">일 자</th><td>${kdateW(t.date)} ${esc(t.time || '')}</td><th style="width:14%">작업장</th><td>${esc(t.wp)}</td></tr>
+  <tr><th>진행자</th><td>${esc(t.leader)}</td><th>참석</th><td>${Object.keys(t.sigs || {}).filter(k => (t.att || []).includes(k)).length}명</td></tr>
+  <tr><th>작업 내용</th><td colspan="3">${nl(t.work)}</td></tr></table>
+  <table><tr><th style="width:5%">No</th><th style="width:14%">공정</th><th>유해·위험요인</th><th style="width:9%">위험도</th><th>안전대책</th></tr>
+  ${hz.map((r, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc((r.proc || '').split('|')[1])}</td><td>${nl(r.hazard)}</td><td class="c">${risk(r.f, r.s)}</td><td>${nl(r.measure || r.current)}</td></tr>`).join('')}
+  ${t.extra ? `<tr><td class="c">+</td><td class="c">추가</td><td colspan="3">${nl(t.extra)}</td></tr>` : ''}</table>
+  <table><tr><th style="width:25%">확인 사항</th><td>${t.health ? '■' : '□'} 근로자 건강상태 확인 &nbsp; ${t.ppe ? '■' : '□'} 보호구 착용 상태 확인</td></tr><tr><th>전달 · 특이사항</th><td>${nl(t.note)}</td></tr></table>
+  ${sigTable(t)}</div>`;
+}
+ACT.printTbm = a => printHTML(tbmHTML(S.tbm.find(x => x.id === a.dataset.id)));
+ACT.printTbmMonth = () => {
+  const m = S.f.month || today().slice(0, 7);
+  const list = S.tbm.filter(t => (t.date || '').startsWith(m)).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.wp || '').localeCompare(b.wp || ''));
+  if (!list.length) return toast('이 달 기록이 없습니다');
+  printHTML(list.map((t, i) => `<div class="${i < list.length - 1 ? 'pb' : ''}">${tbmHTML(t)}</div>`).join(''));
+};
+ACT.printEv = a => {
+  const e = S.events.find(x => x.id === a.dataset.id); let h = '';
+  if (e.type === '교육') h = `${head('위험성평가 교육실시 결과 보고서')}
+    <table><tr><th style="width:16%">교육일시</th><td>${kdateW(e.date)}${timeStr(e)}</td><th style="width:12%">강 사</th><td>${esc(e.teacher)}</td></tr><tr><th>교육장소</th><td colspan="3">${esc(e.place)}</td></tr></table>
+    <h2>▣ 교육내용</h2><div class="ind">${nl(e.content)}</div>
+    ${(e.photos || []).length ? `<h2>▣ 교육 사진</h2>${phPrint(e.photos)}` : ''}<h2>▣ 참석자 명단</h2>${sigTable(e)}`;
+  else if (e.type === '회의') { const rep = '유성배'; h = `${head('위험성평가 회의결과')}
+    <table><tr><th style="width:16%">회의일시</th><td>${kdateW(e.date)}${timeStr(e)}</td></tr><tr><th>회의장소</th><td>${esc(e.place)}</td></tr></table>
+    <h2>▣ 회의내용</h2><div class="ind">${nl(e.content)}</div>
+    <h2>▣ 근로자대표 의견</h2><table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:26%" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '(서명)'}</td></tr></table>
+    <h2>▣ 위험성평가 회의개최 사진 또는 근거서류</h2>${phPrint(e.photos) || '<table><tr><td style="height:30mm"></td></tr></table>'}
+    <h2>▣ 참석자 명단</h2>${sigTable(e)}`; }
+  else if (e.type === '수시') { const rows = S.rows.filter(r => r.ev === e.id); h = `<div class="land">${head('수시 위험성평가 실시 기록', esc(S.meta.company))}
+    <table><tr><th style="width:12%">실시 일자</th><td>${kdateW(e.date)}</td><th style="width:12%">실시 사유</th><td>${esc(e.reason)}</td></tr>
+    <tr><th>대상 공정</th><td>${esc(procLabel(e.proc))}</td><th>대상</th><td>${esc(e.target)}</td></tr>
+    <tr><th>변경·발생 내용</th><td colspan="3">${nl(e.content)}</td></tr><tr><th>평가 참여자</th><td>${esc(e.members)}</td><th>결과 요약</th><td>${esc(e.result)}</td></tr></table>
+    <table><tr><th>No</th><th>세부 작업</th><th>유해·위험요인</th><th>재해형태</th><th>현재 안전조치</th><th>빈도</th><th>강도</th><th>위험도</th><th>감소대책</th><th>담당</th><th>개선 후</th><th>완료일</th></tr>
+    ${rows.map((r, i) => { const R = risk(r.f, r.s), R2 = risk(r.f2, r.s2); return `<tr><td class="c">${i + 1}</td><td>${esc(r.task)}</td><td>${nl(r.hazard)}</td><td class="c">${esc(r.type)}</td><td>${nl(r.current)}</td><td class="c">${r.f}</td><td class="c">${r.s}</td><td class="c">${R} ${grade(R)}</td><td>${nl(r.measure)}</td><td class="c">${esc(r.owner)}</td><td class="c">${R2 ? R2 + ' ' + grade(R2) : ''}</td><td class="c">${esc(r.done)}</td></tr>`; }).join('')}</table>
+    <p class="small">※ 결과는 ${S.year}년 위험성평가표에 반영함 (실시계획서 5-라)</p>${phPrint(e.photos)}</div>`; }
+  else { h = `${head('중량물 취급 작업계획서', esc(S.meta.company))}
+    <table><tr><th style="width:16%">작업명</th><td>${esc(e.title)}</td><th style="width:14%">작성일</th><td>${kdate(e.date)}</td></tr>
+    <tr><th>작업 장소</th><td>${esc(e.place)}</td><th>작업 기간</th><td>${esc(e.period)}</td></tr>
+    <tr><th>중량물 종류</th><td>${esc(e.item)}</td><th>중량</th><td>${esc(e.weight)}${e.weight && !/kg/i.test(e.weight) ? ' kg' : ''}</td></tr>
+    <tr><th>형상·크기</th><td>${esc(e.shape)}</td><th>운반 방법</th><td>${esc(e.method)}</td></tr>
+    <tr><th>작업 지휘자</th><td>${esc(e.chief)}</td><th>작업 인원</th><td>${esc(e.workers)}</td></tr>
+    <tr><th>운반 경로</th><td colspan="3">${nl(e.route)}</td></tr><tr><th>예상 위험요인</th><td colspan="3">${nl(e.risks)}</td></tr>
+    <tr><th>안전대책</th><td colspan="3">${HEAVY_CHK.map((c, i) => `${(e.chk || {})[i] ? '■' : '□'} ${esc(c)}`).join('<br>')}${e.measures ? '<br>' + nl(e.measures) : ''}</td></tr></table>
+    <table style="width:50%;margin-left:auto"><tr><th>작성자</th><th>확인자(관리감독자)</th></tr><tr><td class="c" style="height:14mm">${esc(e.writer)}</td><td class="c">${esc(e.checker)}</td></tr></table>
+    ${phPrint(e.photos)}${(e.att || []).length ? `<h2>▣ 작업자 확인</h2>${sigTable(e)}` : ''}`; }
+  printHTML(h);
+};
+ACT.printDoc = async () => { await flushAll(); const sec = S.f.doc || 'cover'; printHTML(`<div class="docpage">${S.docs[sec] ?? window.DOCS_SEED.find(x => x.id === sec).html}</div>`); };
+ACT.printAllDocs = async () => { await flushAll(); const L2 = window.DOCS_SEED; printHTML(L2.map((d, i) => `<div class="docpage ${i < L2.length - 1 ? 'pb' : ''}">${S.docs[d.id] ?? d.html}</div>`).join('')); };
+
+/* ============ 시작 ============ */
+(async () => {
+  const ys = $('#yearSel'); const cy = new Date().getFullYear();
+  for (let y = 2026; y <= Math.max(cy, 2026) + 1; y++) ys.add(new Option(y + '년', y));
+  ys.value = Math.max(2026, Math.min(cy, 2027));
+  await initStore();
+  if (MODE === 'local') toast('서버에 연결하지 못해 이 브라우저에만 저장합니다', 4000);
+  try { await loadYear(+ys.value); } catch (e) { console.error(e); $('#view').innerHTML = `<p>불러오기 실패: ${esc(e.message)}</p>`; setSt('오류'); }
+})();
+</script>
+</body>
+</html>
