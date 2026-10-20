@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.9';
+const VERSION = 'v1.10';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1338,7 +1338,7 @@ function evHTML(e) {
     ${(e.photos || []).length ? `<h2>▣ 교육 사진</h2>${phPrint(e.photos)}` : ''}<h2>▣ 참석자 명단</h2>${sigTable(e)}`;
   else if (e.type === '회의') { const rep = ROLES.rep[1], ag = e.agenda || [];
     let n = 0; const sec = t => `<h2>▣ ${++n}. ${t}</h2>`;
-    h = `<div class="pb" style="position:relative">${approveHTML('30%')}<h1 style="margin-top:26mm">위험성평가 회의결과</h1>
+    h = `<div class="pb"><table style="width:30%;margin:0 0 4mm auto;font-size:9pt"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:13mm"></td><td></td><td></td></tr></table><h1 style="margin-top:0">위험성평가 회의결과</h1>
     <table><tr><th style="width:16%">회의일시</th><td>${kdateW(e.date)}${timeStr(e)}</td><th style="width:14%">회의장소</th><td>${esc(e.place)}</td></tr>
     <tr><th>주 관</th><td>${ROLES.chief[0]} ${ROLES.chief[1]}</td><th>진 행</th><td>${ROLES.mgr[0]} ${ROLES.mgr[1]}</td></tr>
     <tr><th>참 석</th><td colspan="3">${pCount(e) ? pCount(e) + '명' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명'} / 대상 ${(e.att || []).length}명 (참석자 명단 별첨)</td></tr></table>
