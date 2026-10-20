@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.17';
+const VERSION = 'v1.18';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -580,6 +580,7 @@ function meetingFields(e) {
   <button class="btn s" data-act="arrAdd" data-k="events|${e.id}|actions" style="margin-top:6px">+ 일정</button>
   <h3>근로자대표 의견 (서명란과 함께 인쇄)</h3>${ta(b('opinion'), e.opinion, 4, 'class="inp"')}`;
 }
+const FOWNER = { '방침 및 목표 게시': '장재신', 'TBM 실시 근거자료 확보': '유성배', '위험성평가 결과 고지': '김은식', '실시계획서 내 포상비용 반영': '장재신', '위험성평가표 내 공정 분류표 포함': '김은식', '중량물 취급 작업계획서': '백정국', '불필요 작업·위험물 삭제': '김은식', '수시평가 체계 마련': '김은식', '불필요 화학물질 제거': '백정국', '공단 홈페이지(KRAS) 등록': '김은식' };
 function meetingDraft(e) {
   const F = S.meta.findings, fd = F.filter(f => f.status === '완료'), fp = F.filter(f => f.status === '진행중'), fo = F.filter(f => f.status !== '완료');
   const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9).sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s));
@@ -625,7 +626,7 @@ function meetingDraft(e) {
     { when: e.date ? `${add(4)} ~ ${add(11)}` : '', task: '작업장별 유해·위험요인 도출 및 위험성 추정·결정 (근로자 참여)', owner: '관리감독자' },
     { when: e.date ? add(14) : '', task: '노·사 합동 현장 점검 및 감소대책 수립 (2차 회의)', owner: ROLES.chief[1] },
     { when: '', task: '감소대책 이행, 개선 전·후 기록 및 결과 게시·교육', owner: ROLES.mgr[1] },
-    ...fo.slice(0, 5).map(f => ({ when: f.due ? md(f.due) : '', task: `${prev} 지적사항 — ${f.title}`, owner: f.owner || '' }))];
+    ...fo.slice(0, 5).map(f => ({ when: f.due ? md(f.due) : '', task: `${prev} 지적사항 — ${f.title}`, owner: f.owner || FOWNER[f.title] || ROLES.mgr[1] }))];
   return { purpose, review, agenda, decisions, actions, opinion: opinionDraft() };
 }
 
@@ -1360,7 +1361,7 @@ function evHTML(e) {
     ${e.review ? sec('전년도 실적 검토') + `<div class="ind">${nl(e.review)}</div>` : ''}
     ${ag.length ? sec('주요 회의 및 토의 내용') + ag.map((x, i) => `<div><p style="margin-top:6px;break-after:avoid"><b>안건 ${i + 1}. ${esc(x.t)}</b></p>${(x.talks || []).filter(t => (t.text || '').trim()).map(t => `<div class="ind bk" style="margin:3px 0"><b>${esc(t.who || '')}</b> : “${nl(t.text)}”</div>`).join('')}${x.talk ? `<div class="ind">${nl(x.talk)}</div>` : ''}</div>`).join('') : sec('회의내용') + `<div class="ind">${nl(e.content)}</div>`}
     ${e.decisions ? sec('회의 결과 및 의결 사항') + `<div class="ind">${nl(e.decisions)}</div>` : ''}
-    ${(e.actions || []).length ? '<div class="bk">' + sec('향후 추진 일정') + `<table><tr><th style="width:18%">일 정</th><th>추진 내용</th><th style="width:16%">담 당</th><th style="width:10%">확인</th></tr>${e.actions.map(x => `<tr><td class="c">${esc(x.when || x.due || '')}</td><td>${esc(x.task)}</td><td class="c">${esc(x.owner)}</td><td></td></tr>`).join('')}</table></div>` : ''}
+    ${(e.actions || []).length ? '<div class="bk">' + sec('향후 추진 일정') + `<table><tr><th style="width:18%">일 정</th><th>추진 내용</th><th style="width:18%">담 당</th></tr>${e.actions.map(x => `<tr><td class="c">${esc(x.when || x.due || '')}</td><td>${esc(x.task)}</td><td class="c">${esc(x.owner)}</td></tr>`).join('')}</table></div>` : ''}
     <div class="bk">${sec('근로자대표 의견')}<table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:24%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '<br>(서명)'}</td></tr></table></div>
     </div>
     <h1>위험성평가 회의 참석자 명단</h1><p class="c small">${kdateW(e.date)}${timeStr(e)} · ${esc(e.place)}</p>${sigTable(e)}`; }
