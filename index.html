@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.6';
+const VERSION = 'v1.7';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -519,7 +519,7 @@ function eduEdit(e) {
   <div class="r c4">${fld('일자', inp(b('date'), e.date, 'date'))}${fld('시작', inp(b('t1'), e.t1, 'time'))}${fld('종료', inp(b('t2'), e.t2, 'time'))}${fld('장소', inp(b('place'), e.place))}</div>
   ${e.type === '교육' ? `<div class="r c2">${fld('강사', inp(b('teacher'), e.teacher))}${fld('교육 구분', inp(b('title'), e.title, 'text', 'placeholder="예: 정기 위험성평가 결과 교육"'))}</div>` : `<div class="r">${fld('회의 제목', inp(b('title'), e.title, 'text', 'placeholder="예: 2026년 위험성평가 실시 회의"'))}</div>`}
   ${e.type === '회의' ? meetingFields(e) : `<div class="r">${fld('교육 내용', ta(b('content'), e.content, 6))}</div>`}
-  <div class="f" style="margin-top:8px"><span>${e.type === '교육' ? '교육' : '회의개최'} 사진 · 근거서류</span>${phStrip(b('photos'), e.photos, '사진')}</div>
+  ${e.type === '교육' ? `<div class="f" style="margin-top:8px"><span>교육 사진 · 근거서류</span>${phStrip(b('photos'), e.photos, '사진')}</div>` : ''}
   ${attBlock('events', e)}`;
 }
 
@@ -1328,7 +1328,7 @@ function evHTML(e) {
     ${e.decisions ? sec('회의 결과 및 의결 사항') + `<div class="ind">${nl(e.decisions)}</div>` : ''}
     ${(e.actions || []).length ? sec('향후 추진 일정') + `<table><tr><th style="width:18%">일 정</th><th>추진 내용</th><th style="width:16%">담 당</th><th style="width:10%">확인</th></tr>${e.actions.map(x => `<tr><td class="c">${esc(x.when || x.due || '')}</td><td>${esc(x.task)}</td><td class="c">${esc(x.owner)}</td><td></td></tr>`).join('')}</table>` : ''}
     ${sec('근로자대표 의견')}<table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:24%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '<br>(서명)'}</td></tr></table>
-    ${sec('회의개최 사진 또는 근거서류')}${phPrint(e.photos) || '<table><tr><td style="height:30mm"></td></tr></table>'}</div>
+    </div>
     <h1>위험성평가 회의 참석자 명단</h1><p class="c small">${kdateW(e.date)}${timeStr(e)} · ${esc(e.place)}</p>${sigTable(e)}`; }
   else if (e.type === '수시') { const rows = S.rows.filter(r => r.ev === e.id); h = `<div class="land small">${approveHTML('28%')}${head('수시 위험성평가 실시 기록', esc(S.meta.company) + ' · 실시계획서 5-다')}
     <table><tr><th style="width:12%">실시 일자</th><td>${kdateW(e.date)}</td><th style="width:12%">실시 사유</th><td>${esc(e.reason)}</td></tr>
