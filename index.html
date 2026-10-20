@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.24';
+const VERSION = 'v1.25';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -166,7 +166,7 @@ function toast(m, ms = 2200) { const t = $('#toast'); t.textContent = m; t.style
 const TYPES = ['끼임','베임','맞음','떨어짐','넘어짐','부딪힘','깔림','감전','화재·폭발','화상','화학물질 노출','근골격계질환','기타'];
 const FREQ = {1:'거의 없음',2:'낮음',3:'보통',4:'높음',5:'매우 높음'};
 const SEV = {1:'영향 없음',2:'경미 불휴업',3:'경미 휴업',4:'중대재해'};
-const ADHOC = ['① 중대산업사고 또는 산업재해(휴업 이상) 발생','② 작업장 변경(작업자, 설비, 작업방법 및 절차 등)','③ 건설물, 기계·기구, 설비 등의 정비 또는 보수','④ 기계·기구, 설비 등의 신규 도입·변경 또는 이전','⑤ 원재료, 화학물질 등의 신규 사용 또는 변경','⑥ 그 밖에 작업환경 변화'];
+const ADHOC = ['① 중대산업사고 또는 산업재해(휴업 이상) 발생','② 작업장 변경(작업자, 설비, 작업방법 및 절차 등)','③ 건설물, 기계·기구, 설비 등의 정비 또는 보수','④ 기계·기구, 설비 등의 신규 도입·변경 또는 이전','⑤ 원재료, 화학물질 등의 신규 사용 또는 변경','⑥ 사업장 건설물의 설치·이전·변경 또는 해체','⑦ 그 밖에 작업환경 변화'];
 const EDU_DEFAULT = '● 「위험성평가」 추진목표 및 사업주의 추진방침\n● 「위험성평가」를 위한 사전준비 및 유해·위험요인 파악 방법\n● 유해·위험요인에 대한 위험성 추정 및 결정방법\n● 위험성 감소대책 수립 및 실행의 절차와 기록유지 방법\n● 위험성평가 결과(공정별 주요 유해·위험요인 및 감소대책) 공유';
 const MEET_DEFAULT = '● 위험성평가 전사 추진을 위한 계획수립의 적정성\n● 위험성평가 실시에 따른 책임과 역할 부여\n● 2025년 사후점검 지적사항 개선 계획 공유 (TBM 일지, 결과 고지, 포상, 수시평가 등)\n● 위험성평가와 관련한 관심사항 토론 등';
 function grade(r) { if (!r) return ''; if (r <= 3) return '무시'; if (r <= 6) return '낮음'; if (r <= 8) return '보통'; if (r <= 11) return '약간높음'; if (r <= 15) return '높음'; return '매우높음'; }
@@ -301,6 +301,11 @@ async function loadYear(y) {
   S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
   docs.forEach(d => S.docs[d.sec] = d.html);
   await migrate(); await migrate2();
+  if (!S.meta.mig6) {
+    if (S.docs.plan && S.docs.plan.includes("<p>\u2465 \uadf8 \ubc16\uc5d0 \uc791\uc5c5\ud658\uacbd \ubcc0\ud654\ub85c \uc704\ud5d8\uc131\ud3c9\uac00\uac00 \ud544\uc694\ud558\ub2e4\uace0 \ud310\ub2e8\ub418\ub294 \uacbd\uc6b0</p>") && !S.docs.plan.includes('사업장 건설물의 설치')) { S.docs.plan = S.docs.plan.replace("<p>\u2465 \uadf8 \ubc16\uc5d0 \uc791\uc5c5\ud658\uacbd \ubcc0\ud654\ub85c \uc704\ud5d8\uc131\ud3c9\uac00\uac00 \ud544\uc694\ud558\ub2e4\uace0 \ud310\ub2e8\ub418\ub294 \uacbd\uc6b0</p>", "<p>\u2465 \uc0ac\uc5c5\uc7a5 \uac74\uc124\ubb3c\uc758 \uc124\uce58\u00b7\uc774\uc804\u00b7\ubcc0\uacbd \ub610\ub294 \ud574\uccb4</p>\n<p>\u2466 \uadf8 \ubc16\uc5d0 \uc791\uc5c5\ud658\uacbd \ubcc0\ud654\ub85c \uc704\ud5d8\uc131\ud3c9\uac00\uac00 \ud544\uc694\ud558\ub2e4\uace0 \ud310\ub2e8\ub418\ub294 \uacbd\uc6b0</p>"); await dPut('ra_docs', S.year + '_plan', { year: S.year, sec: 'plan', html: S.docs.plan, at: Date.now() }); }
+    for (const e of S.events.filter(x => x.reason === '⑥ 그 밖에 작업환경 변화')) { e.reason = '⑦ 그 밖에 작업환경 변화'; await dPut('ra_events', e.id, e); }
+    S.meta.mig6 = true; await dPut('ra_meta', String(S.year), S.meta);
+  }
   if (!S.meta.mig5) {
     if (S.meta.tbmLeader === '유성배') S.meta.tbmLeader = '';
     if (S.docs.plan) { let h = S.docs.plan;
