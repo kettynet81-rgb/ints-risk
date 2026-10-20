@@ -100,6 +100,9 @@ table.ev td textarea{min-height:34px}
 .doc .phs img{width:48%;max-height:70mm;object-fit:contain;border:1px solid #000}
 .doc .small{font-size:9pt}
 .doc .bk{break-inside:avoid}
+.fld{border-bottom:1.5px dashed #555;cursor:pointer;padding:0 3px;min-width:40px;display:inline-block}
+.fld .ph{color:#999;font-style:normal}
+@media print{.fld{border:none;padding:0}.fld .ph{display:none}}
 .doc .land,.doc .pb{position:relative}
 .doc .land h1{margin-top:4mm;margin-bottom:2px}
 .doc .land h1+p.c{margin-bottom:8mm}
@@ -139,7 +142,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.2';
+const VERSION = 'v1.3';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -286,7 +289,7 @@ async function loadYear(y) {
   const [rows, tbm, events, docs] = await Promise.all([dList('ra_rows', y), dList('ra_tbm', y), dList('ra_events', y), dList('ra_docs', y)]);
   S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
   docs.forEach(d => S.docs[d.sec] = d.html);
-  stIdle(); route();
+  autoFindings(); stIdle(); route();
 }
 async function firstSetup(y) {
   const meta = seedMeta(y);
@@ -356,11 +359,52 @@ VIEWS.dash = () => {
       return `<div class="card kpi" ${pe ? `data-go="periodic/${pe.id}" style="cursor:pointer"` : 'data-go="periodic" style="cursor:pointer"'}><div class="l">정기 위험성평가</div><div class="n">${pe ? `${st.filter(x => x.ok).length} / ${st.length}` : '시작 전'}</div><div class="t">${pe ? '작업장 확정' + (pe.date ? ' · 시작 ' + esc(pe.date) : '') : '정기평가 탭에서 시작'}</div></div>`; })()}
     <div class="card kpi"><div class="l">회의 · 수시평가 · 중량물 계획서</div><div class="n">${cnt('회의')} · ${cnt('수시')} · ${cnt('중량물')}</div><div class="t">건수</div></div>
   </div>
+  <h3>할 일 (앱 기록으로 자동 정리)</h3>
+  <div class="lst">${todos().map(([t, g]) => `<div class="it" data-go="${esc(g)}"><span>□</span><span class="sp">${esc(t)}</span><span class="small muted">→</span></div>`).join('') || '<p class="small muted" style="padding:8px">남은 일이 없습니다.</p>'}</div>
   <h3>지적사항 진행</h3>
   <div class="lst">${F.map((f, i) => `<div class="it" data-go="find"><span class="tag ${f.status === '완료' ? 'b' : ''}">${esc(f.status)}</span><span class="sp">${f.no}. ${esc(f.title)}</span><span class="small muted">${esc(f.owner)} ${esc(f.due)}</span></div>`).join('')}</div>
   <h3>개선 대상 (위험도 9 이상)</h3>
   <div class="lst">${tgt.sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s)).map(r => `<div class="it" data-go="rows/${r.id}">${rk(r.f, r.s)}<span class="sp">${esc(procLabel(r.proc))} — ${esc(r.hazard)}</span><span class="tag ${r.done ? 'b' : ''}">${r.done ? '완료' : '미완료'}</span></div>`).join('') || '<p class="muted small" style="padding:8px">없음</p>'}</div>`;
 };
+
+/* 자동 증빙 · 할 일 */
+function evidence(f) {
+  const ev = t => S.events.filter(e => e.type === t);
+  const pe = ev('정기')[0], conf = pe ? wps().filter(w => ((pe.wp || {})[w] || {}).done).length : 0;
+  const lastT = [...S.tbm].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+  switch (f.title) {
+    case 'TBM 실시 근거자료 확보': return S.tbm.length ? `TBM 일지 ${S.tbm.length}건 (${wps().map(w => `${w} ${S.tbm.filter(t => t.wp === w).length}`).join(' · ')}) · 최근 ${lastT?.date || ''}` : '';
+    case '위험성평가 결과 고지': return pe ? `정기평가 작업장 확정 ${conf}/${wps().length}${S.meta.postDate ? ' · 게시용 결과 인쇄 ' + S.meta.postDate : ''}` : '';
+    case '실시계획서 내 포상비용 반영': { const r = docf().reward, ex = docf().budget.exec.filter(x => x.cat === REWARD); return rewardTotal() ? `포상 예산 우수부서 ${won(r.dept)}만원 · 개선제안 ${won(r.idea)}만원 (계획서·예산 자동 반영)${ex.length ? ` · 지급 ${ex.length}건` : ''}` : ''; }
+    case '위험성평가표 내 공정 분류표 포함': return pe ? `정기평가 ${S.meta.procs.length}개 공정 분류 · 작업장 확정 ${conf}/${wps().length} (결과서에 공정 분류표 포함)` : '';
+    case '중량물 취급 작업계획서': return ev('중량물').length ? `중량물 작업계획서 ${ev('중량물').length}건` : '';
+    case '불필요 작업·위험물 삭제': return S.meta.deletions.length ? `평가표 삭제 이력 ${S.meta.deletions.length}건 (사유 기록)` : '';
+    case '수시평가 체계 마련': return ev('수시').length ? `수시평가 기록 ${ev('수시').length}건` : '';
+    case '공단 홈페이지(KRAS) 등록': return pe && conf === wps().length ? '정기평가 확정 완료 — KRAS 등록 대상' : '';
+    default: return '';
+  }
+}
+function autoFindings() {
+  let ch = false;
+  S.meta.findings.forEach(f => { if (f.status === '미착수' && (evidence(f) || (f.photos || []).length)) { f.status = '진행중'; ch = true; } });
+  if (ch) queueSave('meta');
+}
+function todos() {
+  const T = [], ev = t => S.events.filter(e => e.type === t), pe = ev('정기')[0];
+  if (!pe) T.push(['정기 위험성평가를 시작하세요', 'periodic']);
+  else wps().forEach(w => { const st = wpStats(pe, w); if (!st.ok) T.push([`${w} 정기평가 미확정${st.draft ? ` · 초안 미검토 ${st.draft}개` : ''}${st.meas < st.tgt ? ` · 감소대책 없음 ${st.tgt - st.meas}개` : ''}`, `periodic/${pe.id}/${w}`]); });
+  const td = today(), late = S.rows.filter(r => risk(r.f, r.s) >= 9 && !r.done && r.due && r.due < td);
+  if (late.length) T.push([`개선 기한이 지난 항목 ${late.length}개`, 'rows']);
+  ['가공실', '품질실'].filter(w => wps().includes(w)).forEach(w => { const l = S.tbm.filter(t => t.wp === w).map(t => t.date).sort().pop(); const days = l ? Math.round((new Date(td) - new Date(l)) / 864e5) : null;
+    if (days === null || days > 3) T.push([`${w} TBM ${days === null ? '기록 없음' : days + '일째 없음 (최근 ' + l + ')'}`, 'tbm']); });
+  if (!ev('회의').length) T.push(['위험성평가 실시 회의 기록 없음', 'edu']);
+  const edus = ev('교육'), signed = new Set(edus.flatMap(e => Object.keys(e.sigs || {}).filter(n => (e.att || []).includes(n)))), total = S.meta.people.length;
+  if (!edus.length) T.push(['위험성평가 교육 기록 없음', 'edu']); else if (total && signed.size / total < .8) T.push([`교육 이수 ${Math.round(signed.size / total * 100)}% — 목표 80%까지 ${Math.ceil(total * .8) - signed.size}명 남음`, 'edu']);
+  if (!rewardTotal()) T.push(['포상비 금액 미정 (계획서·예산에 자동 반영됨)', 'docs']);
+  if (!docf().notice.date) T.push(['위험성평가 실시 공고일 미입력', 'docs']);
+  const nf = S.meta.findings.filter(f => f.status !== '완료').length; if (nf) T.push([`2025 지적사항 미완료 ${nf}건`, 'find']);
+  return T;
+}
 
 /* 지적사항 */
 VIEWS.find = () => {
@@ -371,6 +415,7 @@ VIEWS.find = () => {
     <div class="row-h"><b>${f.no}. ${esc(f.title)}</b><span class="sp"></span>${f.link ? `<button class="btn s g" data-go="${f.link}">${esc(tabName(f.link))} →</button>` : ''}</div>
     <div class="small" style="margin-top:4px"><span class="muted">공단 지적</span> ${esc(f.detail)}</div>
     <div class="small"><span class="muted">계획서 반영</span> ${esc(f.plan)} · <span class="muted">할 일</span> ${esc(f.todo)}</div>
+    ${evidence(f) ? `<div class="small" style="margin-top:4px"><span class="tag b">앱 기록</span> ${esc(evidence(f))}</div>` : ''}
     <div class="r c3">${fld('상태', sel(['미착수', '진행중', '완료'], f.status, `data-b="meta||findings.${i}.status"`))}${fld('담당', inp(`meta||findings.${i}.owner`, f.owner))}${fld('완료(예정)일', inp(`meta||findings.${i}.due`, f.due, 'date'))}</div>
     <div class="r">${fld('개선 내용', ta(`meta||findings.${i}.action`, f.action, 2, 'placeholder="무엇을 했는지 (보고서에 그대로 들어갑니다)"'))}</div>
     ${phStrip(`meta||findings.${i}.photos`, f.photos, '증빙 사진')}
@@ -580,20 +625,196 @@ function heavyEdit(e) {
   ${attBlock('events', e)}`;
 }
 
-/* 문서 */
-const DOCDEF = () => window.DOCS_SEED.map(d => ({ id: d.id, title: d.title }));
+/* 문서 — 앱 기록으로 자동 작성되는 문서(G)와 직접 고치는 문서(E) */
+const DOCDEF = () => [
+  { id: 'cover', title: '표지', gen: true }, { id: 'policy', title: '안전보건경영방침' }, { id: 'goal', title: '안전보건 목표' },
+  { id: 'plan', title: '실시계획서 본문' }, { id: 'annual', title: '연간계획서', gen: true }, { id: 'notice', title: '실시 공고', gen: true },
+  { id: 'meeting', title: '회의결과', gen: true }, { id: 'edu', title: '교육결과 보고서', gen: true }, { id: 'budget', title: '예산 편성·집행', gen: true },
+  { id: 'attach', title: '첨부 목록' }];
+const BUDGET_SEED = [
+  ['현장 안전시설 개선비용', 50, '- 전기 안전장치 : 1대 = 50만원\n- 워터 펌프 안전장치 :\n- 기계보수비 :'],
+  ['개인보호구 및 안전장구 구입비용', 65, '- 안전화 : 5켤레 = 20만원\n- 방독마스크 : 2개 × 15만원 = 30만원\n- 응급박스 : 1set × 5만원 = 5만원\n- 구급약품 : 10개 × 1만원 = 10만원'],
+  ['안전보건교육 실시비용(내/외부)', 80, '- 강사료 :\n- 교육교재비 : 1식 = 20만원\n- 외부교육비 : 3명 × 20만원 = 60만원'],
+  ['작업환경 측정 및 근로자 건강검진 실시비용', 50, '- 작업환경측정 : 1회 × 50만원 = 50만원\n- 일반건강검진 : 14명\n- 특수건강검진 : 1명'],
+  ['재해예방 기술지도비용', 60, '- 위험성평가 컨설팅 : 50만원\n- 강사료 : 1명 × 10만원 = 10만원'],
+  ['안전관련 행사비용', 20, '- 현수막제작비 : 2개 × 10만원 = 20만원'],
+  ['안전보건표지 비용', 35, '- 안전포스터 : 10장 × 1만원 = 10만원\n- 안전표지판 : 5개 × 1만원 = 5만원\n- 무재해게시판 : 1개 × 20만원 = 20만원'],
+  ['관련회의 및 토론회 개최 비용', 40, '- 회의 다과비 = 20만원\n- 토론회 다과비 = 20만원'],
+  ['위험성평가 포상비용', 0, '- 위험성평가 참여 우수 부서 포상\n- 우수 개선제안 포상'],
+  ['기타비용', 40, '- 작업복 : 10개 × 4만원 = 40만원\n- 운동시설비 :']];
+const REWARD = '위험성평가 포상비용';
+function docf() {
+  const m = S.meta; m.docf ||= {};
+  const d = m.docf;
+  d.notice ||= { date: '', evDate: '', t1: '', t2: '', place: '2층 사무실 및 각 작업장 (가공실 · 품질실 · 사무실)', kind: '' };
+  d.annual ||= { dept: '경영지원팀', date: '', mgrEdu: '', plan: {}, who: {} };
+  d.budget ||= { items: BUDGET_SEED.map(([cat, amt, detail]) => ({ cat, amt, detail })), exec: [] };
+  d.reward ||= { dept: '', idea: '' };
+  return d;
+}
+const won = n => (+n || 0).toLocaleString('ko-KR');
+const md = s => s ? `${+s.slice(5, 7)}/${+s.slice(8, 10)}` : '';
+const qOf = s => s ? Math.floor((+s.slice(5, 7) - 1) / 3) + 1 : 0;
+const fieldSpan = (k, v, ph = '입력') => `<span class="fld" data-fld="${k}" contenteditable="false">${v ? esc(v) : `<i class="ph">${esc(ph)}</i>`}</span>`;
+function rewardTotal() { const r = docf().reward; return (+r.dept || 0) + (+r.idea || 0); }
+function budgetItems() { const d = docf(); return d.budget.items.map(it => it.cat === REWARD ? { ...it, amt: rewardTotal() || +it.amt || 0 } : it); }
+
+/* 연간계획서 자동 */
+function annualRows() {
+  const F = S.meta.findings, fnd = no => F.find(f => f.no === no) || {};
+  const fdone = no => { const f = fnd(no); return f.status === '완료' && f.due ? [f.due] : []; };
+  const evs = t => S.events.filter(e => e.type === t);
+  const edus = evs('교육'), signedEdu = new Set(edus.flatMap(e => Object.keys(e.sigs || {}).filter(n => (e.att || []).includes(n))));
+  const pe = evs('정기'); const peDates = pe.flatMap(e => [e.date, ...Object.values(e.wp || {}).map(w => w.date)]).filter(Boolean);
+  const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9), tdone = tgt.filter(r => r.done);
+  const tbmD = [...new Set(S.tbm.map(t => t.date + '|' + t.wp))].map(x => x.split('|')[0]).filter(Boolean);
+  const rewardEx = docf().budget.exec.filter(x => x.cat === REWARD);
+  const total = S.meta.people.length;
+  return [
+    { k: 'policy', g: '1. 사전준비\n(의사소통)', t: '안전보건경영방침 및 목표 공표·게시', goal: '1건', who: '장재신', proof: '게시 사진', d: fdone(1), res: fnd(1).status || '' },
+    { k: 'meeting', g: '', t: '위험성평가 실시 회의', goal: '1회', who: '김은식', proof: '회의결과\n(참석자 서명)', d: evs('회의').map(e => e.date).filter(Boolean), res: `${evs('회의').length}회` },
+    { k: 'ceoEdu', g: '2. 위험성평가\n교육', t: '위험성평가 사업주 교육', goal: '이수완료', who: '박종성', proof: '수료증', span: '이수 완료', res: '이수 완료' },
+    { k: 'mgrEdu', g: '', t: '위험성평가 담당자 교육', goal: '1명', who: '김은식', proof: '수료증', d: docf().annual.mgrEdu ? [docf().annual.mgrEdu] : [], res: docf().annual.mgrEdu ? '이수' : '' },
+    { k: 'workerEdu', g: '', t: '위험성평가 근로자 교육\n(평가 결과 교육 포함)', goal: '80% 이상', who: '김은식', proof: '교육실시 결과 보고서', d: edus.map(e => e.date).filter(Boolean), res: total ? `${Math.round(signedEdu.size / total * 100)}% (${signedEdu.size}/${total}명)` : '' },
+    { k: 'periodic', g: '3. 위험성평가\n실시', t: '정기평가 (공정 분류, 불필요 작업·위험물 삭제)', goal: '1회', who: '김은식', proof: '위험성평가표', d: [...new Set(peDates)], res: pe.length ? `작업장 확정 ${pe[0] ? wps().filter(w => ((pe[0].wp || {})[w] || {}).done).length : 0}/${wps().length}` : '' },
+    { k: 'adhoc', g: '', t: '수시평가 (설비·작업방법·화학물질 변경 시)', goal: '발생 시', who: '김은식', proof: '수시평가 기록', span: '사유 발생 시', d: evs('수시').map(e => e.date).filter(Boolean), res: `${evs('수시').length}건` },
+    { k: 'measure', g: '', t: '감소대책 이행', goal: '고위험 100%', who: '백규담', proof: '개선 전·후 사진', d: tdone.map(r => r.done), res: tgt.length ? `${tdone.length}/${tgt.length} (${Math.round(tdone.length / tgt.length * 100)}%)` : '' },
+    { k: 'tbm', g: '4. 참여 및\n결과 공유', t: '공정별 TBM (가공·품질)', goal: '매일', who: '유성배', proof: 'TBM 일지', d: tbmD, count: true, res: `${S.tbm.length}회` },
+    { k: 'post', g: '', t: '위험성평가 결과 게시판 고지', goal: '평가 후 1주 이내', who: '김은식', proof: '게시 사진', d: fdone(3), res: fnd(3).status || '' },
+    { k: 'reward', g: '', t: '위험성평가 참여 우수 부서 포상', goal: '연 1회', who: '장재신', proof: '포상금 지급·수령 확인서', d: rewardEx.map(x => x.date).filter(Boolean), res: rewardEx.length ? `${rewardEx.length}건 ${won(rewardEx.reduce((a, x) => a + (+x.amt || 0), 0))}원` : '' }];
+}
+function genAnnual(edit) {
+  const a = docf().annual, rows = annualRows();
+  const qcell = (r, q) => {
+    const planned = a.plan[r.k + q] ?? (q === 4);
+    const ds = (r.d || []).filter(x => qOf(x) === q);
+    const act = r.count ? (ds.length ? `${ds.length}회` : '') : ds.slice(0, 3).map(md).join(', ') + (ds.length > 3 ? ' 외' : '');
+    return `<td class="c" ${edit ? `data-q="${r.k}|${q}" style="cursor:pointer" title="클릭: 계획(●) 표시/해제"` : ''}>${planned ? '●' : ''}${act ? `<div class="small">${act}</div>` : ''}</td>`;
+  };
+  return `<table style="width:28%;margin-left:auto"><tr><td rowspan="2" class="c" style="width:12%"><b>결<br>재</b></td><td class="c">담당</td><td class="c">팀장</td></tr><tr><td style="height:12mm"></td><td></td></tr></table>
+  <h1>위험성평가 연간계획서</h1>
+  <p>부서명 : ${edit ? fieldSpan('annual.dept', a.dept) : esc(a.dept)} &nbsp;&nbsp;&nbsp; 작성일자 : ${edit ? fieldSpan('annual.date', a.date ? kdate(a.date) : '', '날짜') : kdate(a.date)}</p>
+  <table><tr><th>구분</th><th>세부내용</th><th>목표</th><th>1/4</th><th>2/4</th><th>3/4</th><th>4/4</th><th>담당자</th><th>증빙자료</th><th>실적 (자동)</th></tr>
+  ${rows.map(r => `<tr><td>${nl(r.g)}</td><td>${nl(r.t)}</td><td class="c">${esc(r.goal)}</td>${r.span ? `<td colspan="4" class="c">${esc(r.span)}${(r.d || []).length ? `<div class="small">${r.d.map(md).join(', ')}</div>` : ''}</td>` : [1, 2, 3, 4].map(q => qcell(r, q)).join('')}<td class="c">${edit ? fieldSpan('annual.who.' + r.k, a.who[r.k] ?? r.who) : esc(a.who[r.k] ?? r.who)}</td><td class="c">${nl(r.proof)}</td><td class="c small">${esc(r.res)}</td></tr>`).join('')}</table>
+  <p class="small">※ ● 계획, 날짜는 앱 기록으로 자동 표시되는 실제 실시일. 각 항목은 증빙자료란의 기록으로 실시 여부를 확인한다.</p>`;
+}
+function genCover(edit) {
+  const d = docf();
+  return `<p class="c" style="font-size:20pt;margin-top:40mm">${S.year}년</p><h1 style="font-size:28pt;margin:6mm 0">위험성평가 실시계획서</h1><p class="c" style="margin-bottom:60mm">Risk Assessment Implementation Plan</p>
+  <table style="width:70%;margin:0 auto;font-size:13pt"><tr><td style="width:33%"><b>사 업 장</b></td><td>${esc(S.meta.company)}</td></tr><tr><td><b>대 표 자</b></td><td>${esc(S.meta.ceo)} (인)</td></tr><tr><td><b>작 성 일</b></td><td>${edit ? fieldSpan('coverDate', d.coverDate ? kdate(d.coverDate) : '', '날짜') : kdate(d.coverDate)}</td></tr></table>`;
+}
+function genNotice(edit) {
+  const n = docf().notice, pe = S.events.find(e => e.type === '정기');
+  const evDate = n.evDate || pe?.date || '', kind = n.kind || '정기';
+  const F = (k, v, ph) => edit ? fieldSpan('notice.' + k, v, ph) : esc(v);
+  return `<h1>위험성평가 실시 공고</h1><p class="c">${esc(S.meta.company)}</p>
+  <p>당사는 근로자의 안전과 건강을 확보하고 무재해 사업장을 이룩하기 위하여 산업안전보건법 제36조에 따른 위험성평가를 다음과 같이 실시함을 공고합니다.</p>
+  <h2>1. 실시 개요</h2>
+  <table><tr><th style="width:18%">일 시</th><td>${edit ? fieldSpan('notice.evDate', evDate ? kdateW(evDate) : '', '날짜') : kdateW(evDate)} ${F('t1', n.t1, '시작')} ~ ${F('t2', n.t2, '종료')}${!n.evDate && pe?.date && edit ? ' <span class="small muted">(정기평가 시작일 자동)</span>' : ''}</td></tr>
+  <tr><th>장 소</th><td>${F('place', n.place, '장소')}</td></tr>
+  <tr><th>참석 대상</th><td>전 직원 (관리감독자 및 해당 작업장 근로자 필수 참석)</td></tr>
+  <tr><th>평가 구분</th><td ${edit ? 'data-kind style="cursor:pointer" title="클릭해서 바꾸기"' : ''}>${kind === '정기' ? '■' : '□'} 정기평가 &nbsp;&nbsp; ${kind === '수시' ? '■' : '□'} 수시평가</td></tr>
+  <tr><th>평가 방법</th><td>빈도 · 강도법 (가능성 5단계 × 중대성 4단계)</td></tr></table>
+  <h2>2. 추진 절차</h2>
+  <table><tr><th>단계</th><th>구 분</th><th>내 용</th><th>담 당</th></tr>
+  <tr><td class="c">1</td><td>사전 준비</td><td>평가 대상 공정 확정, 정보 수집</td><td class="c">평가 담당자</td></tr>
+  <tr><td class="c">2</td><td>유해·위험요인 파악</td><td>작업장 순회점검, 근로자 의견 수렴</td><td class="c">관리감독자</td></tr>
+  <tr><td class="c">3</td><td>위험성 결정</td><td>빈도 × 강도로 위험성 수준 판단</td><td class="c">관리감독자</td></tr>
+  <tr><td class="c">4</td><td>감소대책 수립·실행</td><td>개선대책 수립, 개선 전·후 사진 기록</td><td class="c">관리감독자</td></tr>
+  <tr><td class="c">5</td><td>결과 공유</td><td>게시판 고지 및 교육 (1주 이내)</td><td class="c">평가 담당자</td></tr></table>
+  <h2>3. 협조 사항</h2>
+  <div class="ind"><p>○ 관리감독자는 담당 작업장의 유해·위험요인을 파악하고 감소대책을 수립하여 실천한다.</p><p>○ 근로자는 위험성평가 및 작업 전 안전점검회의(TBM)에 적극 참여한다.</p><p>○ 유해·위험요인 개선제안을 적극 제출하며, 우수 부서 및 우수 제안은 포상한다.</p><p>○ 평가 결과는 게시판에 게시하고 교육을 통해 모든 근로자에게 알린다.</p></div>
+  <p>문의 : 위험성평가 담당자 김은식</p>
+  <p class="c" style="margin-top:10mm">${edit ? fieldSpan('notice.date', n.date ? kdate(n.date) : '', '공고일') : kdate(n.date)}</p>
+  <p class="c"><b>${esc(S.meta.company)} 대표 ${esc(S.meta.ceo)}</b> (인)</p>`;
+}
+function genEvDoc(type, edit) {
+  const list = S.events.filter(e => e.type === type).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const key = type === '회의' ? 'meetingId' : 'eduId', d = docf();
+  const e = list.find(x => x.id === d[key]) || list[0];
+  if (!e) return edit ? `<p class="c" style="margin:30mm 0">아직 ${type} 기록이 없습니다.<br><br><button class="btn p" data-act="newEv" data-type="${type}">+ ${type} 기록 작성</button></p>` : `<h1>위험성평가 ${type === '회의' ? '회의결과' : '교육실시 결과 보고서'}</h1><p class="c">(기록 없음)</p>`;
+  return evHTML(e);
+}
+function genBudget() {
+  const d = docf(), items = budgetItems(), ex = d.budget.exec;
+  const tot = items.reduce((a, x) => a + (+x.amt || 0), 0), per = S.meta.people.length ? Math.round(tot * 10000 / S.meta.people.length) : 0;
+  const exTot = ex.reduce((a, x) => a + (+x.amt || 0), 0);
+  const r = d.reward;
+  return `<h1>위험성평가 예산 편성 및 집행 내역</h1>
+  <p><b>▣ (필수) 1인당 2만원 초과 예산편성</b> — 1인당 ${won(per)}원 (${S.meta.people.length}명 기준) ${per > 20000 ? '✔ 충족' : '✘ 미달'}</p>
+  <h2>▣ 1. 예산 편성</h2>
+  <table><tr><th style="width:30%">구 분</th><th style="width:12%">편성액</th><th>편성 내역</th></tr>
+  <tr><td class="c"><b>합 계</b></td><td class="c"><b>${won(tot)}만원</b></td><td></td></tr>
+  ${items.map(x => `<tr><td>${esc(x.cat)}</td><td class="c">${x.amt ? won(x.amt) + '만원' : '만원'}</td><td>${x.cat === REWARD ? `- 위험성평가 참여 우수 부서 포상 : ${r.dept ? won(r.dept) + '만원' : '만원'}<br>- 우수 개선제안 포상 : ${r.idea ? won(r.idea) + '만원' : '만원'}` : nl(x.detail)}</td></tr>`).join('')}</table>
+  <h2>▣ 2. 예산 집행 내역</h2>
+  <table><tr><th style="width:20%">구 분</th><th style="width:13%">집행일자</th><th>집행 내용</th><th style="width:13%">집행액</th><th style="width:16%">증빙자료</th></tr>
+  ${ex.map(x => `<tr><td>${esc(x.cat)}</td><td class="c">${esc(x.date)}</td><td>${esc(x.content)}</td><td class="rt">${won(x.amt)}원</td><td>${esc(x.proof)}</td></tr>`).join('') || '<tr><td colspan="5" class="c">집행 내역 없음</td></tr>'}
+  <tr><td class="c"><b>합 계</b></td><td></td><td></td><td class="rt"><b>${won(exTot)}원</b></td><td></td></tr></table>
+  <p class="small">※ 집행 시마다 기록하고 영수증·세금계산서·거래명세서 등 증빙자료를 함께 보관한다.</p>
+  <h2>▣ 3. 편성 대비 집행 현황</h2>
+  <table><tr><th>구 분</th><th>편성액</th><th>집행액</th><th>집행률</th></tr>
+  ${items.filter(x => +x.amt || ex.some(y => y.cat === x.cat)).map(x => { const e2 = ex.filter(y => y.cat === x.cat).reduce((a, y) => a + (+y.amt || 0), 0); return `<tr><td>${esc(x.cat)}</td><td class="rt">${won(x.amt)}만원</td><td class="rt">${won(e2)}원</td><td class="c">${x.amt ? Math.round(e2 / (x.amt * 10000) * 100) : 0}%</td></tr>`; }).join('')}
+  <tr><td class="c"><b>합 계</b></td><td class="rt"><b>${won(tot)}만원</b></td><td class="rt"><b>${won(exTot)}원</b></td><td class="c"><b>${tot ? Math.round(exTot / (tot * 10000) * 100) : 0}%</b></td></tr></table>`;
+}
+function budgetPanel() {
+  const d = docf(), cats = d.budget.items.map(x => x.cat);
+  return `<div class="card"><b>포상비 (실시계획서 10. 포상 · 예산에 자동 반영)</b>
+    <div class="r c2">${fld('참여 우수 부서 포상 (만원)', inp('meta||docf.reward.dept', d.reward.dept, 'number', 'data-rerender'))}${fld('우수 개선제안 포상 (만원)', inp('meta||docf.reward.idea', d.reward.idea, 'number', 'data-rerender'))}</div></div>
+  <div class="card"><b>예산 편성</b> <span class="small muted">— 합계·1인당 금액·집행률은 자동 계산</span>
+    <div class="scroll"><table class="t ev" style="margin-top:6px"><tr><th style="width:30%">구분</th><th style="width:12%">편성액(만원)</th><th>편성 내역</th><th style="width:6%"></th></tr>
+    ${d.budget.items.map((x, i) => `<tr><td>${inp(`meta||docf.budget.items.${i}.cat`, x.cat, 'text', 'data-rerender')}</td><td>${x.cat === REWARD ? `<span class="small">${won(rewardTotal())} (포상비 합)</span>` : inp(`meta||docf.budget.items.${i}.amt`, x.amt, 'number', 'data-rerender')}</td><td>${x.cat === REWARD ? '<span class="small muted">위 포상비 칸에서 입력</span>' : ta(`meta||docf.budget.items.${i}.detail`, x.detail, 2, 'data-rerender')}</td><td><button class="btn s g" data-act="budDel" data-k="items" data-i="${i}">삭제</button></td></tr>`).join('')}</table></div>
+    <button class="btn s" data-act="budAdd" data-k="items" style="margin-top:6px">+ 항목</button></div>
+  <div class="card"><b>예산 집행 기록</b> <span class="small muted">— 쓸 때마다 한 줄씩</span>
+    <div class="scroll"><table class="t ev" style="margin-top:6px"><tr><th style="width:22%">구분</th><th style="width:14%">집행일자</th><th>집행 내용</th><th style="width:13%">집행액(원)</th><th style="width:16%">증빙자료</th><th style="width:6%"></th></tr>
+    ${d.budget.exec.map((x, i) => `<tr><td>${sel([['', '선택'], ...cats], x.cat, `data-b="meta||docf.budget.exec.${i}.cat" data-rerender`)}</td><td>${inp(`meta||docf.budget.exec.${i}.date`, x.date, 'date', 'data-rerender')}</td><td>${inp(`meta||docf.budget.exec.${i}.content`, x.content, 'text', 'data-rerender')}</td><td>${inp(`meta||docf.budget.exec.${i}.amt`, x.amt, 'number', 'data-rerender')}</td><td>${inp(`meta||docf.budget.exec.${i}.proof`, x.proof, 'text', 'data-rerender placeholder="영수증 등"')}</td><td><button class="btn s g" data-act="budDel" data-k="exec" data-i="${i}">삭제</button></td></tr>`).join('')}</table></div>
+    <button class="btn s" data-act="budAdd" data-k="exec" style="margin-top:6px">+ 집행 기록</button></div>`;
+}
+function evPicker(type) {
+  const list = S.events.filter(e => e.type === type).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const key = type === '회의' ? 'meetingId' : 'eduId', d = docf();
+  const cur = (list.find(x => x.id === d[key]) || list[0] || {}).id || '';
+  return `<div class="card small">교육·회의 탭에서 작성한 ${type} 기록(서명 포함)이 이 문서로 자동 들어갑니다.
+    <div class="bar" style="margin:6px 0 0">${list.length ? sel(list.map(e => [e.id, `${e.date || '날짜 미입력'} ${e.title || ''}`]), cur, `data-b="meta||docf.${key}" data-rerender class="inp" style="width:auto"`) : ''}<button class="btn s" data-act="newEv" data-type="${type}">+ 새 ${type} 기록</button>${cur ? `<button class="btn s" data-go="edu/${cur}">이 기록 고치기 →</button>` : ''}</div></div>`;
+}
+const GEN = { cover: genCover, annual: genAnnual, notice: genNotice, meeting: e => genEvDoc('회의', e), edu: e => genEvDoc('교육', e), budget: genBudget };
+function ensureFields(sec, html) {
+  if (sec === 'plan' && !html.includes('data-fld="reward.dept"')) {
+    const i = html.indexOf('연간 예산');
+    if (i > 0) { let k = 0; html = html.slice(0, i) + html.slice(i).replace(/<td>\s*만원\s*<\/td>/g, m => (++k === 1 ? `<td>${fieldSpan('reward.dept', '')}만원</td>` : k === 2 ? `<td>${fieldSpan('reward.idea', '')}만원</td>` : m)); }
+  }
+  return html;
+}
+function fillFields(html, edit) {
+  const box = document.createElement('div'); box.innerHTML = html;
+  box.querySelectorAll('.fld[data-fld]').forEach(sp => { const v = getPath(docf(), sp.dataset.fld); sp.innerHTML = v ? esc(sp.dataset.fld.includes('reward') ? won(v) : v) : (edit ? '<i class="ph">입력</i>' : ''); });
+  return box.innerHTML;
+}
+function editedHTML(sec, edit) { return fillFields(ensureFields(sec, S.docs[sec] ?? (window.DOCS_SEED.find(x => x.id === sec) || {}).html ?? ''), edit); }
+function docHTML(sec, edit = false) { return GEN[sec] ? GEN[sec](edit) : editedHTML(sec, edit); }
 VIEWS.docs = () => {
-  const cur = S.f.doc; const d = DOCDEF().find(x => x.id === cur) || DOCDEF()[0];
-  const html = S.docs[d.id] ?? (window.DOCS_SEED.find(x => x.id === d.id) || {}).html ?? '';
-  return `<div class="bar"><h2 style="margin:0">계획서 · 문서</h2><span class="sp"></span><button class="btn" data-act="printDoc">이 문서 인쇄</button><button class="btn p" data-act="printAllDocs">실시계획서 전체 인쇄</button></div>
-  <div class="chips">${DOCDEF().map(x => `<a data-doc="${x.id}" class="${x.id === d.id ? 'on' : ''}">${esc(x.title)}</a>`).join('')}</div>
-  <div class="tb"><button class="btn s" data-cmd="bold"><b>굵게</b></button><button class="btn s" data-act="rowAdd">표 행 추가</button><button class="btn s" data-act="rowDel">표 행 삭제</button><span class="sp"></span><span class="small muted" style="align-self:center">글자를 클릭해서 바로 고치면 자동 저장됩니다</span><button class="btn s g" data-act="docReset">원본으로 되돌리기</button></div>
-  <div class="doc docpage" contenteditable="true" spellcheck="false" id="docEd" data-sec="${d.id}">${html}</div>`;
+  const D = DOCDEF(), d = D.find(x => x.id === S.f.doc) || D[0];
+  const head2 = `<div class="bar"><h2 style="margin:0">계획서 · 문서</h2><span class="sp"></span><button class="btn" data-act="printDoc">이 문서 인쇄</button><button class="btn p" data-act="printAllDocs">실시계획서 전체 인쇄</button></div>
+  <div class="chips">${D.map(x => `<a data-doc="${x.id}" class="${x.id === d.id ? 'on' : ''}">${esc(x.title)}${x.gen ? ' ⚙' : ''}</a>`).join('')}</div>`;
+  if (d.gen) {
+    const panel = d.id === 'budget' ? budgetPanel() : d.id === 'meeting' ? evPicker('회의') : d.id === 'edu' ? evPicker('교육')
+      : `<div class="card small">⚙ 앱 기록으로 자동 작성되는 문서입니다. <b>밑줄 친 칸</b>을 눌러 입력하세요.${d.id === 'annual' ? ' 분기 칸을 누르면 계획(●) 표시가 바뀌고, 실제 실시일과 실적은 앱 기록에서 자동으로 채워집니다.' : ''}${d.id === 'notice' ? ' 평가 구분 칸을 누르면 정기/수시가 바뀝니다.' : ''}</div>`;
+    return head2 + panel + `<div class="doc docpage" id="genDoc">${docHTML(d.id, true)}</div>`;
+  }
+  return head2 + `<div class="tb"><button class="btn s" data-cmd="bold"><b>굵게</b></button><button class="btn s" data-act="rowAdd">표 행 추가</button><button class="btn s" data-act="rowDel">표 행 삭제</button><span class="sp"></span><span class="small muted" style="align-self:center">글자를 클릭해서 바로 고치면 자동 저장 · 밑줄 칸은 눌러서 입력</span><button class="btn s g" data-act="docReset">원본으로 되돌리기</button></div>
+  <div class="doc docpage" contenteditable="true" spellcheck="false" id="docEd" data-sec="${d.id}">${docHTML(d.id, true)}</div>`;
 };
 function bindDoc() {
   const ed = $('#docEd'); if (!ed) return;
   ed.addEventListener('input', () => { S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec, 1000); });
   ed.addEventListener('paste', e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); document.execCommand('insertText', false, t); });
+}
+async function editField(k) {
+  const isDate = /(date|Date|mgrEdu)$/.test(k) && !/^notice\.t/.test(k);
+  const cur = getPath(docf(), k) ?? (k.startsWith('annual.who.') ? (annualRows().find(r => 'annual.who.' + r.k === k) || {}).who : '');
+  const v = isDate ? await askDate('날짜 입력', cur || '') : await ask(k.startsWith('reward') ? '금액 (만원)' : /^notice\.t/.test(k) ? '시간 (예: 10:00)' : '입력', '', cur || '');
+  if (v === null) return;
+  setPath(docf(), k, k.startsWith('reward') ? (v.replace(/[^0-9.]/g, '')) : v);
+  await saveNow('meta'); route();
 }
 
 /* 설정 */
@@ -618,7 +839,7 @@ VIEWS.set = () => {
 /* ============ 입력 처리 ============ */
 function setPath(o, p, v) { const ks = p.split('.'); let x = o; for (let i = 0; i < ks.length - 1; i++) { if (x[ks[i]] == null) x[ks[i]] = {}; x = x[ks[i]]; } x[ks[ks.length - 1]] = v; }
 function getPath(o, p) { return p.split('.').reduce((x, k) => x == null ? x : x[k], o); }
-function onBind(el) {
+function onBind(el, evt = 'change') {
   const [col, id, path] = el.dataset.b.split('|');
   const o = getObj(col, id); if (!o) return;
   let v = el.type === 'checkbox' ? el.checked : el.value;
@@ -642,17 +863,17 @@ function onBind(el) {
     if (field === 'wp') { S.tbm.forEach(t => { if (t.wp === old) { t.wp = v; queueSave('tbm', t.id); } }); S.meta.people.forEach(pp => { if (pp.wp === old && !S.meta.procs.some(q => q.wp === old)) pp.wp = v; }); }
   }
   queueSave(col, id);
-  if (el.hasAttribute('data-rerender')) route();
+  if (el.hasAttribute('data-rerender') && evt === 'change') route();
 }
 document.addEventListener('change', e => {
   const el = e.target;
-  if (el.dataset.b) return onBind(el);
+  if (el.dataset.b) return onBind(el, 'change');
   if (el.dataset.flt) { S.f[el.dataset.flt] = el.value; if (el.dataset.flt === 'wp') S.f.proc = ''; if (el.dataset.flt !== 'tbmDate') route(); return; }
   if (el.dataset.hz) { const [tid, rid] = el.dataset.hz.split('|'); const t = S.tbm.find(x => x.id === tid); t.haz ||= []; t.haz = el.checked ? [...new Set([...t.haz, rid])] : t.haz.filter(x => x !== rid); queueSave('tbm', tid); return; }
   if (el.dataset.addatt) { const [col, id, path] = el.dataset.addatt.split('|'); const t = subObj(getObj(col, id), path); if (el.value) { t.att = [...(t.att || []), el.value]; queueSave(col, id); route(); } return; }
   if (el.id === 'yearSel') { flushAll().then(() => { location.hash = 'dash'; loadYear(+el.value); }); }
 });
-document.addEventListener('input', e => { const el = e.target; if (el.dataset.b && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|number)$/.test(el.type)))) onBind(el); });
+document.addEventListener('input', e => { const el = e.target; if (el.dataset.b && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|number)$/.test(el.type)))) onBind(el, 'input'); });
 
 /* 사진 추가/보기 */
 let phTarget = null;
@@ -691,9 +912,9 @@ function ask(title, ph = '', val = '') {
     const i = m.querySelector('#askIn'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { m.remove(); res(i.value); } });
   });
 }
-function askDate(title, val = '') {
+function askDate(title, val = '', ok = '확인') {
   return new Promise(res => {
-    const m = modal(`<h3>${esc(title)}</h3><input type="date" class="inp" id="askD" value="${esc(val)}"><p class="small muted" style="margin-top:6px">비워 두면 날짜 칸을 빈칸으로 인쇄합니다 (손으로 기입).</p><div class="acts"><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">인쇄</button></div>`,
+    const m = modal(`<h3>${esc(title)}</h3><input type="date" class="inp" id="askD" value="${esc(val)}"><div class="acts"><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">${esc(ok)}</button></div>`,
       (a, close, mm) => { const v = mm.querySelector('#askD').value; close(); res(a === 'ok' ? v : null); });
   });
 }
@@ -725,6 +946,9 @@ document.addEventListener('click', async e => {
   const sg = t.closest('[data-sign]'); if (sg) { const [col, id, path, n] = sg.dataset.sign.split('|'); const d = await signPad(n); if (d) { const o = subObj(getObj(col, id), path); o.sigs ||= {}; o.sigs[n] = d; await saveNow(col, id); route(); } return; }
   const rm = t.closest('[data-rmatt]'); if (rm) { const [col, id, path, n] = rm.dataset.rmatt.split('|'); const o = subObj(getObj(col, id), path); if ((o.sigs || {})[n] && !(await confirmBox(n + ' 님을 명단에서 뺄까요?', '서명도 함께 지워집니다.'))) return; o.att = (o.att || []).filter(x => x !== n); if (o.sigs) delete o.sigs[n]; await saveNow(col, id); route(); return; }
   const ps = t.closest('[data-pstep]'); if (ps) { await flushAll(); const [w, n] = ps.dataset.pstep.split('|'); S.f.pstep[w] = +n; route(); window.scrollTo(0, 0); return; }
+  const fl = t.closest('.fld[data-fld]'); if (fl) { e.preventDefault(); await editField(fl.dataset.fld); return; }
+  const qq = t.closest('[data-q]'); if (qq) { const [k, q] = qq.dataset.q.split('|'); const a2 = docf().annual; a2.plan[k + q] = !(a2.plan[k + q] ?? (+q === 4)); await saveNow('meta'); route(); return; }
+  if (t.closest('[data-kind]')) { const n = docf().notice; n.kind = (n.kind || '정기') === '정기' ? '수시' : '정기'; await saveNow('meta'); route(); return; }
   const dc = t.closest('[data-doc]'); if (dc) { await flushAll(); S.f.doc = dc.dataset.doc; route(); return; }
   const cm = t.closest('[data-cmd]'); if (cm) { e.preventDefault(); document.execCommand(cm.dataset.cmd); const ed = $('#docEd'); if (ed) { S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec); } return; }
   const a = t.closest('[data-act]'); if (!a) return;
@@ -734,6 +958,8 @@ document.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd],[
 
 /* ============ 동작 ============ */
 const ACT = {};
+ACT.budAdd = async a => { const d = docf(); if (a.dataset.k === 'items') d.budget.items.push({ cat: '', amt: 0, detail: '' }); else d.budget.exec.push({ cat: '', date: '', content: '', amt: 0, proof: '' }); await saveNow('meta'); route(); };
+ACT.budDel = async a => { const d = docf(); d.budget[a.dataset.k].splice(+a.dataset.i, 1); await saveNow('meta'); route(); };
 ACT.addRow = async () => {
   const r = newRow({ proc: S.f.proc || (S.f.wp ? procKey(S.meta.procs.find(p => p.wp === S.f.wp)) : '') });
   S.rows.push(r); await saveNow('rows', r.id); S.f.view = 'all'; route();
@@ -936,7 +1162,7 @@ ACT.printPeriodic = a => {
   printHTML(`<div class="land small">${cover}${pages}${tail}</div>`);
 };
 ACT.printPost = async () => {
-  const pd = await askDate('게시일'); if (pd === null) return;
+  const pd = await askDate('게시일', S.meta.postDate || '', '인쇄'); if (pd) { S.meta.postDate = pd; queueSave('meta'); } if (pd === null) return;
   const rows = S.rows.filter(r => risk(r.f, r.s) >= 9 || r.measure).sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || risk(b.f, b.s) - risk(a.f, a.s));
   printHTML(`<div class="land">${head(`${S.year}년 위험성평가 결과 알림`, `${esc(S.meta.company)} · 게시일 ${kdate(pd)}`)}
   <p>당사는 ${S.year}년 위험성평가를 실시하였으며, 주요 유해·위험요인과 감소대책, 개선 후 남아 있는 위험(잔류 위험성)을 다음과 같이 알립니다. 작업 전 반드시 확인하고 안전수칙을 지켜 주십시오.</p>
@@ -946,11 +1172,11 @@ ACT.printPost = async () => {
   <p class="rt" style="margin-top:14px"><b>${esc(S.meta.company)} 대표 ${esc(S.meta.ceo)}</b></p></div>`);
 };
 ACT.printFind = async () => {
-  const wd = await askDate('보고서 작성일'); if (wd === null) return;
+  const wd = await askDate('보고서 작성일', S.meta.findDate || '', '인쇄'); if (wd) { S.meta.findDate = wd; queueSave('meta'); } if (wd === null) return;
   const F = S.meta.findings;
   printHTML(`${head('2025년 위험성평가 사후점검 지적사항 개선 결과', `${esc(S.meta.company)} · 점검일 2025.07.30 · 작성 ${kdate(wd)}`)}
-  <table><tr><th style="width:5%">No</th><th style="width:22%">지적사항</th><th>개선 내용</th><th style="width:10%">담당</th><th style="width:12%">완료일</th><th style="width:8%">상태</th></tr>
-  ${F.map(f => `<tr><td class="c">${f.no}</td><td>${esc(f.title)}<br><span class="small">${esc(f.detail)}</span></td><td>${nl(f.action)}</td><td class="c">${esc(f.owner)}</td><td class="c">${esc(f.due)}</td><td class="c">${esc(f.status)}</td></tr>`).join('')}</table>
+  <table><tr><th style="width:5%">No</th><th style="width:22%">지적사항</th><th>개선 내용 · 근거 기록</th><th style="width:10%">담당</th><th style="width:12%">완료일</th><th style="width:8%">상태</th></tr>
+  ${F.map(f => `<tr><td class="c">${f.no}</td><td>${esc(f.title)}<br><span class="small">${esc(f.detail)}</span></td><td>${nl(f.action)}${evidence(f) ? `<br><span class="small">[기록] ${esc(evidence(f))}</span>` : ''}</td><td class="c">${esc(f.owner)}</td><td class="c">${esc(f.due)}</td><td class="c">${esc(f.status)}</td></tr>`).join('')}</table>
   ${F.filter(f => (f.photos || []).length).map(f => `<div class="bk"><h2>${f.no}. ${esc(f.title)} — 증빙</h2>${phPrint(f.photos)}</div>`).join('')}`);
 };
 function tbmHTML(t) {
@@ -972,8 +1198,8 @@ ACT.printTbmMonth = () => {
   if (!list.length) return toast('이 달 기록이 없습니다');
   printHTML(list.map((t, i) => `<div class="${i < list.length - 1 ? 'pb' : ''}">${tbmHTML(t)}</div>`).join(''));
 };
-ACT.printEv = a => {
-  const e = S.events.find(x => x.id === a.dataset.id); let h = '';
+function evHTML(e) {
+  let h = '';
   if (e.type === '교육') h = `${head('위험성평가 교육실시 결과 보고서')}
     <table><tr><th style="width:16%">교육일시</th><td>${kdateW(e.date)}${timeStr(e)}</td><th style="width:12%">강 사</th><td>${esc(e.teacher)}</td></tr><tr><th>교육장소</th><td colspan="3">${esc(e.place)}</td></tr></table>
     <h2>▣ 교육내용</h2><div class="ind">${nl(e.content)}</div>
@@ -1003,10 +1229,11 @@ ACT.printEv = a => {
     <tr><th>안전대책</th><td colspan="3">${HEAVY_CHK.map((c, i) => `${(e.chk || {})[i] ? '■' : '□'} ${esc(c)}`).join('<br>')}${e.measures ? '<br>' + nl(e.measures) : ''}</td></tr></table>
     <table style="width:50%;margin-left:auto"><tr><th>작성자</th><th>확인자(관리감독자)</th></tr><tr><td class="c" style="height:14mm">${esc(e.writer)}</td><td class="c">${esc(e.checker)}</td></tr></table>
     ${phPrint(e.photos)}${(e.att || []).length ? `<h2>▣ 작업자 확인</h2>${sigTable(e)}` : ''}`; }
-  printHTML(h);
-};
-ACT.printDoc = async () => { await flushAll(); const sec = S.f.doc || 'cover'; printHTML(`<div class="docpage">${S.docs[sec] ?? window.DOCS_SEED.find(x => x.id === sec).html}</div>`); };
-ACT.printAllDocs = async () => { await flushAll(); const L2 = window.DOCS_SEED; printHTML(L2.map((d, i) => `<div class="docpage ${i < L2.length - 1 ? 'pb' : ''}">${S.docs[d.id] ?? d.html}</div>`).join('')); };
+  return h;
+}
+ACT.printEv = a => printHTML(evHTML(S.events.find(x => x.id === a.dataset.id)));
+ACT.printDoc = async () => { await flushAll(); const sec = S.f.doc || 'cover'; printHTML(`<div class="docpage">${docHTML(sec)}</div>`); };
+ACT.printAllDocs = async () => { await flushAll(); const D = DOCDEF(); printHTML(D.map((d, i) => `<div class="docpage ${i < D.length - 1 ? 'pb' : ''}">${docHTML(d.id)}</div>`).join('')); };
 
 /* ============ 시작 ============ */
 (async () => {
