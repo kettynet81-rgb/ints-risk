@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.19';
+const VERSION = 'v1.20';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -301,6 +301,14 @@ async function loadYear(y) {
   S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
   docs.forEach(d => S.docs[d.sec] = d.html);
   await migrate(); await migrate2();
+  if (!S.meta.mig5) {
+    if (S.meta.tbmLeader === '유성배') S.meta.tbmLeader = '';
+    if (S.docs.plan) { let h = S.docs.plan;
+      h = h.replace("<p>\u25cb \uc704\ud5d8\uc131\ud3c9\uac00 \uc2e4\uc2dc\uacc4\ud68d \ubc0f \uacb0\uacfc\uc5d0 \ub300\ud55c \ud611\uc758 \ubc0f \uc758\uacac \uc81c\uc2dc</p>\n<p>\u25cb \uc791\uc5c5 \uc804 \uc548\uc804\uc810\uac80\ud68c\uc758(TBM) \uc9c4\ud589 \ubc0f \uc77c\uc9c0 \uc791\uc131</p></td>", "<p>\u25cb \uc704\ud5d8\uc131\ud3c9\uac00 \uc2e4\uc2dc\uacc4\ud68d \ubc0f \uacb0\uacfc\uc5d0 \ub300\ud55c \ud611\uc758 \ubc0f \uc758\uacac \uc81c\uc2dc</p>\n<p>\u25cb \uc791\uc5c5 \uc804 \uc548\uc804\uc810\uac80\ud68c\uc758(TBM) \ucc38\uc5ec \ubc0f \uadfc\ub85c\uc790 \uc758\uacac \uc804\ub2ec</p></td>");
+      if (!h.includes('담당 작업장 작업 전 안전점검회의(TBM) 진행')) h = h.replace("<p>\u25cb \ucc45\uc784\uacfc \uad8c\ud55c \uc778\uc9c0 \ubc0f \uc774\ud589</p></td>", "<p>\u25cb \ucc45\uc784\uacfc \uad8c\ud55c \uc778\uc9c0 \ubc0f \uc774\ud589</p>\n<p>\u25cb \ub2f4\ub2f9 \uc791\uc5c5\uc7a5 \uc791\uc5c5 \uc804 \uc548\uc804\uc810\uac80\ud68c\uc758(TBM) \uc9c4\ud589 \ubc0f \uc77c\uc9c0 \uc791\uc131</p></td>");
+      if (h !== S.docs.plan) { S.docs.plan = h; await dPut('ra_docs', S.year + '_plan', { year: S.year, sec: 'plan', html: h, at: Date.now() }); } }
+    S.meta.mig5 = true; await dPut('ra_meta', String(S.year), S.meta);
+  }
   if (!S.meta.mig4) {
     const m = S.meta;
     const el = S.rows.find(r => r.hazard === '세척기 누전으로 감전');
@@ -617,7 +625,7 @@ function meetingDraft(e) {
       { who: CEO, text: '즉시 조치 가능한 건은 바로 집행하고, 설비 교체처럼 큰 예산이 필요한 건은 우선순위를 정해 반영하겠습니다.' }] }];
   const decisions = [
     `1. 평가 범위: ${wps().join('·')} ${S.meta.procs.length}개 공정의 정상 작업 외에 정비·청소·장애 조치 등 비정상 작업을 필수 평가 대상에 포함함.`,
-    `2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. ${prev}년부터 시행 중인 공정별 TBM은 매일 계속 실시하고 일지를 정리·보관함.`,
+    `2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. ${prev}년부터 시행 중인 공정별 TBM은 작업장 관리감독자가 매일 진행하고 일지를 작성·보관함 (총괄: 본부장).`,
     `3. ${prev}년 지적사항: 미완료 ${fo.length}건은 담당·기한을 정해 연내 완료함.`,
     `4. 개선 예산: 평가 결과 위험도 9 이상으로 결정된 항목은 사업주 승인 하에 우선 예산 배정함.`,
     '5. 결과 공유: 평가 완료 후 게시판 고지 및 근로자 교육을 실시하고, 평가 결과는 공단 KRAS에 등록함.'].join('\n');
@@ -795,7 +803,7 @@ function annualRows() {
     { k: 'periodic', g: '3. 위험성평가\n실시', t: '정기평가 (공정 분류, 불필요 작업·위험물 삭제)', goal: '1회', who: '김은식', proof: '위험성평가표', d: [...new Set(peDates)], res: pe.length ? `작업장 확정 ${pe[0] ? wps().filter(w => ((pe[0].wp || {})[w] || {}).done).length : 0}/${wps().length}` : '' },
     { k: 'adhoc', g: '', t: '수시평가 (설비·작업방법·화학물질 변경 시)', goal: '발생 시', who: '김은식', proof: '수시평가 기록', span: '사유 발생 시', d: evs('수시').map(e => e.date).filter(Boolean), res: `${evs('수시').length}건` },
     { k: 'measure', g: '', t: '감소대책 이행', goal: '고위험 100%', who: '백규담', proof: '개선 전·후 사진', d: tdone.map(r => r.done), res: tgt.length ? `${tdone.length}/${tgt.length} (${Math.round(tdone.length / tgt.length * 100)}%)` : '' },
-    { k: 'tbm', g: '4. 참여 및\n결과 공유', t: '공정별 TBM (가공·품질)', goal: '매일', who: '장재신', proof: 'TBM 일지', d: tbmD, count: true, res: `${S.tbm.length}회` },
+    { k: 'tbm', g: '4. 참여 및\n결과 공유', t: '공정별 TBM (가공·품질)', goal: '매일', who: '관리감독자', proof: 'TBM 일지', d: tbmD, count: true, res: `${S.tbm.length}회` },
     { k: 'post', g: '', t: '위험성평가 결과 게시판 고지', goal: '평가 후 1주 이내', who: '김은식', proof: '게시 사진', d: fdone(3), res: fnd(3).status || '' },
     { k: 'reward', g: '', t: '위험성평가 참여 우수 부서 포상', goal: '연 1회', who: '장재신', proof: '포상금 지급·수령 확인서', d: rewardEx.map(x => x.date).filter(Boolean), res: rewardEx.length ? `${rewardEx.length}건 ${won(rewardEx.reduce((a, x) => a + (+x.amt || 0), 0))}원` : '' }];
 }
@@ -937,7 +945,7 @@ async function editField(k) {
 VIEWS.set = () => {
   const m = S.meta;
   return `<h2>설정</h2>
-  <div class="card"><div class="r c3" style="margin-top:0">${fld('사업장', inp('meta||company', m.company))}${fld('대표자', inp('meta||ceo', m.ceo))}${fld('TBM 기본 진행자', inp('meta||tbmLeader', m.tbmLeader))}</div></div>
+  <div class="card"><div class="r c3" style="margin-top:0">${fld('사업장', inp('meta||company', m.company))}${fld('대표자', inp('meta||ceo', m.ceo))}${fld('TBM 진행자 (비우면 작업장 관리감독자)', inp('meta||tbmLeader', m.tbmLeader))}</div></div>
   <h3>인원 명단 <span class="small muted">(TBM·교육·회의 참석자 명단에 쓰입니다. 작업장을 넣으면 그 작업장 TBM 기본 참석자가 됩니다)</span></h3>
   <div class="scroll"><table class="t"><tr><th>부서</th><th>직책</th><th>성명</th><th>작업장</th><th></th></tr>
   ${m.people.map((p, i) => `<tr><td>${inp(`meta||people.${i}.dept`, p.dept)}</td><td>${inp(`meta||people.${i}.pos`, p.pos)}</td><td>${inp(`meta||people.${i}.name`, p.name)}</td><td>${sel([['', '-'], ...wps()], p.wp, `data-b="meta||people.${i}.wp"`)}</td><td><button class="btn s g" data-act="delPerson" data-i="${i}">삭제</button></td></tr>`).join('')}</table></div>
@@ -1109,7 +1117,7 @@ ACT.newTbm = async a => {
   const dup = S.tbm.find(t => t.wp === wp && t.date === dt);
   if (dup && !(await confirmBox(`${dt} ${wp} TBM이 이미 있습니다`, '하나 더 만들까요? (취소하면 기존 일지를 엽니다)'))) { go('tbm', dup.id); return; }
   const def = S.meta.people.filter(p => p.wp === wp).map(p => p.name);
-  const leader = S.meta.tbmLeader || '';
+  const leader = S.meta.tbmLeader || ((S.meta.supervisors || SUP_DEFAULT)[wp] || '').split(/[,\s]+/).find(n => person(n)) || '';
   const t = { id: uid(), year: S.year, at: Date.now(), date: dt, time: '', wp, leader, work: prev?.work || '', haz: prev?.haz ? [...prev.haz] : S.rows.filter(r => (r.proc || '').startsWith(wp + '|') && risk(r.f, r.s) >= 9).map(r => r.id),
     extra: prev?.extra || '', note: '', health: false, ppe: false, att: prev?.att ? [...prev.att] : [...new Set([leader, ...def].filter(Boolean))], sigs: {} };
   t.pres = Object.fromEntries(t.att.map(n => [n, true]));
