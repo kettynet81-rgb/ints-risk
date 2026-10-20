@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.15';
+const VERSION = 'v1.16';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -597,10 +597,11 @@ function meetingDraft(e) {
   const review = [
     `- ${prev}년 위험성평가 인정사업장 사후점검(2025.07.30, 안전보건공단) 결과 지적사항 ${F.length}건: ${F.map(f => f.title).join(', ')}.`,
     `- 현재 개선 완료 ${fd.length}건, 진행중 ${fp.length}건, 미착수 ${F.length - fd.length - fp.length}건.`,
-    `- 문제점: 지적사항이 실시계획서 문구 반영에 그치고 실행 증빙(공정별 TBM 일지, 결과 게시, 포상 지급, 개선 전·후 기록)이 부족하였음.`].join('\n');
+    `- 공정별 TBM은 ${prev}년부터 시행 중이며, TBM 일지 등 실시 근거자료를 정리하고 있음.`,
+    `- 문제점: 지적사항이 실시계획서 문구 반영에 그치고 실행 증빙(결과 게시, 포상 지급, 개선 전·후 기록 등)이 부족하였음.`].join('\n');
   const agenda = [
     { t: `${S.year}년 정기 위험성평가 추진 방향 및 주요 변경사항`, talks: [
-      { who: MG, text: `이번 정기 위험성평가는 단순 서류 작성이 아니라 작업 전 TBM, 수시평가와 연계하여 진행하겠습니다. ${prev}년 지적사항 ${F.length}건 중 ${fd.length}건이 완료되었고, 남은 ${fo.length}건(${fo.slice(0, 4).map(f => f.title).join(', ')}${fo.length > 4 ? ' 등' : ''})은 이번 평가와 함께 마무리하겠습니다. 평가 대상은 ${wps().join('·')} ${S.meta.procs.length}개 공정이며, 현재 하지 않는 작업과 쓰지 않는 물질은 평가표에서 정리하겠습니다.` },
+      { who: MG, text: `이번 정기 위험성평가는 단순 서류 작성이 아니라 ${prev}년부터 시행 중인 공정별 TBM, 수시평가와 연계하여 진행하겠습니다. ${prev}년 지적사항 ${F.length}건 중 ${fd.length}건이 완료되었고, 남은 ${fo.length}건(${fo.slice(0, 4).map(f => f.title).join(', ')}${fo.length > 4 ? ' 등' : ''})은 이번 평가와 함께 마무리하겠습니다. 평가 대상은 ${wps().join('·')} ${S.meta.procs.length}개 공정이며, 현재 하지 않는 작업과 쓰지 않는 물질은 평가표에서 정리하겠습니다.` },
       { who: CEO, text: `위험성평가는 서류를 만들기 위한 절차가 아니라 우리 직원들의 안전을 직접 지키는 수단이어야 합니다. 올해 위험성평가 예산 ${won(tot)}만원(1인당 ${won(per)}원)을 편성했고, 평가에서 나오는 위험요인 개선에 필요한 예산은 우선 배정하겠습니다. 팀장과 근로자대표는 현장의 실제 위험을 빠짐없이 도출해 주십시오.` }] },
     { t: '작업장별 평가 대상 및 방법', talks: [
       { who: RP, text: '현장 작업자들은 정상 작업보다 정비·청소·장애 조치 같은 비정상 작업에서 위험을 더 많이 느낍니다. 이번 평가에서는 이런 작업도 빠짐없이 다뤄 주십시오.' },
@@ -615,7 +616,7 @@ function meetingDraft(e) {
       { who: CEO, text: '즉시 조치 가능한 건은 바로 집행하고, 설비 교체처럼 큰 예산이 필요한 건은 우선순위를 정해 반영하겠습니다.' }] }];
   const decisions = [
     `1. 평가 범위: ${wps().join('·')} ${S.meta.procs.length}개 공정의 정상 작업 외에 정비·청소·장애 조치 등 비정상 작업을 필수 평가 대상에 포함함.`,
-    '2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. 공정별 TBM은 매일 실시하고 일지를 작성함.',
+    `2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. ${prev}년부터 시행 중인 공정별 TBM은 매일 계속 실시하고 일지를 정리·보관함.`,
     `3. ${prev}년 지적사항: 미완료 ${fo.length}건은 담당·기한을 정해 연내 완료함.`,
     `4. 개선 예산: 평가 결과 위험도 9 이상으로 결정된 항목은 사업주 승인 하에 우선 예산 배정함.`,
     '5. 결과 공유: 평가 완료 후 1주 이내 게시판 고지 및 근로자 교육, 공단 KRAS 등록.'].join('\n');
