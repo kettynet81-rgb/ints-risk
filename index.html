@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.14';
+const VERSION = 'v1.15';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -605,7 +605,7 @@ function meetingDraft(e) {
     { t: '작업장별 평가 대상 및 방법', talks: [
       { who: RP, text: '현장 작업자들은 정상 작업보다 정비·청소·장애 조치 같은 비정상 작업에서 위험을 더 많이 느낍니다. 이번 평가에서는 이런 작업도 빠짐없이 다뤄 주십시오.' },
       ...wps().filter(w => w !== '사무실').map(w => ({ who: sup(w), text: `${w}은 ${S.meta.procs.filter(p => p.wp === w).map(p => p.proc).join('·')} 공정을 대상으로, 정상 작업과 비정상 작업을 나눠 해당 작업 근로자와 함께 현장을 돌며 위험요인을 파악하겠습니다.` })),
-      { who: CH, text: `이번 평가는 정상 작업과 비정상 작업을 구분해 평가하고, 위험도 9 이상 항목은 기한을 정해 개선한 뒤 전·후 기록을 남기도록 하겠습니다.` }] },
+      { who: CH, text: `이번 평가는 정상 작업과 비정상 작업을 구분해 평가하겠습니다. 평가 결과 위험도 9 이상으로 결정되는 항목은 기한을 정해 개선하고 전·후 기록을 남기도록 하겠습니다.` }] },
     { t: '현장 근로자 참여 및 의견 수렴 방안', talks: [
       { who: RP, text: '평가표 양식이 복잡하면 근로자들이 참여하기 어렵습니다. TBM 때 바로 말하거나 간단히 제안할 수 있게 해 주십시오.' },
       { who: MG, text: '공정별 TBM에서 나온 위험요인을 평가에 바로 반영하고, 작업장별 평가 때 관리감독자와 해당 작업 근로자가 함께 참여하여 서명하도록 하겠습니다. 결과는 평가 후 1주 이내 게시판에 게시하고 교육하겠습니다.' },
@@ -617,7 +617,7 @@ function meetingDraft(e) {
     `1. 평가 범위: ${wps().join('·')} ${S.meta.procs.length}개 공정의 정상 작업 외에 정비·청소·장애 조치 등 비정상 작업을 필수 평가 대상에 포함함.`,
     '2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. 공정별 TBM은 매일 실시하고 일지를 작성함.',
     `3. ${prev}년 지적사항: 미완료 ${fo.length}건은 담당·기한을 정해 연내 완료함.`,
-    `4. 개선 예산: 위험도 9 이상 항목은 사업주 승인 하에 우선 예산 배정함.`,
+    `4. 개선 예산: 평가 결과 위험도 9 이상으로 결정된 항목은 사업주 승인 하에 우선 예산 배정함.`,
     '5. 결과 공유: 평가 완료 후 1주 이내 게시판 고지 및 근로자 교육, 공단 KRAS 등록.'].join('\n');
   const actions = [
     { when: e.date ? `${add(1)} ~ ${add(3)}` : '', task: '전 부서 위험성평가 교육 및 평가 계획 공지 (실시 공고 게시)', owner: ROLES.mgr[1] },
@@ -1131,18 +1131,14 @@ ACT.newEv = async a => {
 };
 function opinionDraft() {
   const F = S.meta.findings, done = F.filter(f => f.status === '완료'), open = F.filter(f => f.status !== '완료');
-  const pe = S.events.find(x => x.type === '정기');
-  const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9), tdone = tgt.filter(r => r.done);
   const L = [];
-  L.push(`1. ${S.year}년 위험성평가 실시계획(조직, 역할, 일정, 평가 방법)에 동의합니다.`);
-  if (F.length) L.push(`2. 2025년 사후점검 지적사항 ${F.length}건 중 ${done.length}건 개선 완료${open.length ? `, 나머지 ${open.length}건(${open.slice(0, 4).map(f => f.title).join(', ')}${open.length > 4 ? ' 등' : ''})은 계획대로 조속히 이행해 주시기 바랍니다.` : '를 확인하였습니다.'}`);
-  if (tgt.length) L.push(`3. 위험도 9 이상 개선대상 ${tgt.length}건(${[...new Set(tgt.map(r => r.proc.split('|')[1]))].slice(0, 4).join(', ')})에 대한 감소대책 이행(현재 ${tdone.length}건 완료)과 개선 전·후 확인 결과를 근로자에게 공유해 주시기 바랍니다.`);
-  const ops = pe ? wps().map(w => [w, ((pe.wp || {})[w] || {}).opinion]).filter(x => (x[1] || '').trim()) : [];
-  if (ops.length) L.push(`4. 작업장 근로자 의견: ${ops.map(([w, o]) => `[${w}] ${o.trim().replace(/\n+/g, ' ')}`).join(' / ')}`);
+  L.push(`${S.year}년 위험성평가 실시계획(조직, 역할, 일정, 평가 방법)에 동의합니다.`);
+  if (F.length) L.push(`2025년 사후점검 지적사항 ${F.length}건 중 ${done.length}건 개선 완료${open.length ? `, 나머지 ${open.length}건은 계획대로 조속히 이행해 주시기 바랍니다.` : '를 확인하였습니다.'}`);
+  L.push('이번 정기평가에는 작업장별로 해당 작업 근로자가 직접 참여하여, 정상 작업뿐 아니라 정비·청소 등 비정상 작업의 위험도 빠짐없이 다뤄 주시기 바랍니다.');
   const notes = [...S.tbm].sort((a, b) => (b.date || '').localeCompare(a.date || '')).filter(t => (t.note || '').trim()).slice(0, 3);
-  if (notes.length) L.push(`${ops.length ? 5 : 4}. TBM 건의사항: ${notes.map(t => `${t.date} ${t.wp} - ${t.note.trim().replace(/\n+/g, ' ')}`).join(' / ')}`);
-  L.push(`${L.length + 1}. 근로자대표로서 공정별 TBM 및 위험성평가에 근로자가 적극 참여하도록 협조하겠으며, 유해·위험요인 개선 제안과 포상 제도를 적극 운영해 주시기 바랍니다.`);
-  return L.join('\n');
+  if (notes.length) L.push(`TBM 건의사항: ${notes.map(t => `${t.date} ${t.wp} - ${t.note.trim().replace(/\n+/g, ' ')}`).join(' / ')}`);
+  L.push('근로자대표로서 공정별 TBM 및 위험성평가에 근로자가 적극 참여하도록 협조하겠으며, 유해·위험요인 개선 제안과 포상 제도를 적극 운영해 주시기 바랍니다.');
+  return L.map((x, i) => `${i + 1}. ${x}`).join('\n');
 }
 ACT.draftOpinion = async a => {
   const e = S.events.find(x => x.id === a.dataset.id);
