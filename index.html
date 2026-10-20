@@ -130,7 +130,7 @@ table.ev td textarea{min-height:34px}
 </head>
 <body>
 <header>
-  <div class="hd"><h1>INTS 위험성평가</h1><select id="yearSel"></select><span class="st" id="st">불러오는 중…</span></div>
+  <div class="hd"><h1>INTS 위험성평가</h1><select id="yearSel"></select><span class="st" id="st">불러오는 중…</span><button class="btn s" id="saveBtn" title="입력하는 즉시 자동 저장됩니다. 눌러서 바로 저장할 수도 있습니다.">저장</button></div>
   <nav id="nav"></nav>
 </header>
 <main id="view"></main>
@@ -142,7 +142,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.4';
+const VERSION = 'v1.5';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -165,6 +165,8 @@ const EDU_DEFAULT = '● 「위험성평가」 추진목표 및 사업주의 추
 const MEET_DEFAULT = '● 위험성평가 전사 추진을 위한 계획수립의 적정성\n● 위험성평가 실시에 따른 책임과 역할 부여\n● 2025년 사후점검 지적사항 개선 계획 공유 (TBM 일지, 결과 고지, 포상, 수시평가 등)\n● 위험성평가와 관련한 관심사항 토론 등';
 function grade(r) { if (!r) return ''; if (r <= 3) return '무시'; if (r <= 6) return '낮음'; if (r <= 8) return '보통'; if (r <= 11) return '약간높음'; if (r <= 15) return '높음'; return '매우높음'; }
 function rkCls(r) { return r >= 12 ? 'h' : r >= 9 ? 'm' : ''; }
+const isP = (o, n) => !!(((o || {}).pres || {})[n] || ((o || {}).sigs || {})[n]);
+const pCount = o => (o.att || []).filter(n => isP(o, n)).length;
 const risk = (f, s) => (+f || 0) * (+s || 0);
 const rk = (f, s) => { const r = risk(f, s); return r ? `<span class="rk ${rkCls(r)}">${r} ${grade(r)}</span>` : '<span class="rk">-</span>'; };
 
@@ -212,7 +214,8 @@ async function dList(col, year) {
 /* 저장 대기열 */
 const pend = new Map(); let saving = 0;
 function setSt(t) { $('#st').textContent = t; }
-function stIdle() { setSt((MODE === 'cloud' ? '☁ 서버 저장' : '⚠ 이 브라우저에만 저장') + ' · ' + VERSION); }
+let lastSaved = '';
+function stIdle() { setSt((MODE === 'cloud' ? '☁ 서버' : '⚠ 이 브라우저에만') + (lastSaved ? ` · ✓ ${lastSaved} 저장됨` : ' 저장') + ' · ' + VERSION); }
 function queueSave(col, id, ms = 700) {
   const k = col + '|' + id; clearTimeout(pend.get(k)); setSt('저장 대기…');
   pend.set(k, setTimeout(() => { pend.delete(k); saveNow(col, id); }, ms));
@@ -224,6 +227,7 @@ async function saveNow(col, id) {
     if (col === 'meta') await dPut('ra_meta', String(S.year), S.meta);
     else if (col === 'docs') await dPut('ra_docs', S.year + '_' + id, { year: S.year, sec: id, html: S.docs[id], at: Date.now() });
     else await dPut('ra_' + col, id, o);
+    const d = new Date(); lastSaved = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   } catch (e) { toast('저장 실패: ' + e.message, 5000); console.error(e); }
   saving--; if (!saving && !pend.size) stIdle();
 }
@@ -345,7 +349,7 @@ VIEWS.dash = () => {
   const tbmBy = wps().map(w => `${w} ${new Set(tbmM.filter(t => t.wp === w).map(t => t.date)).size}일`).join(' · ');
   const lastT = [...S.tbm].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
   const edus = S.events.filter(e => e.type === '교육').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const eduSigned = new Set(edus.flatMap(e => Object.keys(e.sigs || {})));
+  const eduSigned = new Set(edus.flatMap(e => (e.att || []).filter(n => isP(e, n))));
   const total = S.meta.people.length;
   const cnt = t => S.events.filter(e => e.type === t).length;
   return `<h2>${S.year}년 위험성평가 현황</h2>
@@ -354,7 +358,7 @@ VIEWS.dash = () => {
     <div class="card kpi"><div class="l">감소대책 이행 (위험도 9 이상)</div><div class="n">${tdone.length} / ${tgt.length}</div><div class="t">목표 고위험 100% · 평가 항목 전체 ${R.length}개</div></div>
     <div class="card kpi"><div class="l">위험도 감소율 (개선 완료 항목 평균)</div><div class="n">${avgRed == null ? '-' : avgRed + '%'}</div><div class="t">목표 80% 이상 감소 · 재평가 ${red.length}건</div></div>
     <div class="card kpi"><div class="l">이번 달 TBM 실시일</div><div class="n">${new Set(tbmM.map(t => t.date + t.wp)).size}회</div><div class="t">${esc(tbmBy)}${lastT ? ' · 최근 ' + esc(lastT.date) : ''}</div></div>
-    <div class="card kpi"><div class="l">위험성평가 교육 이수 (서명 기준)</div><div class="n">${total ? Math.round(eduSigned.size / total * 100) : 0}%</div><div class="t">${eduSigned.size} / ${total}명 · 목표 80% 이상 · 교육 ${edus.length}회</div></div>
+    <div class="card kpi"><div class="l">위험성평가 교육 이수 (참석 기준)</div><div class="n">${total ? Math.round(eduSigned.size / total * 100) : 0}%</div><div class="t">${eduSigned.size} / ${total}명 · 목표 80% 이상 · 교육 ${edus.length}회</div></div>
     ${(() => { const pe = S.events.filter(e => e.type === '정기').sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0]; const st = pe ? wps().map(w => wpStats(pe, w)) : [];
       return `<div class="card kpi" ${pe ? `data-go="periodic/${pe.id}" style="cursor:pointer"` : 'data-go="periodic" style="cursor:pointer"'}><div class="l">정기 위험성평가</div><div class="n">${pe ? `${st.filter(x => x.ok).length} / ${st.length}` : '시작 전'}</div><div class="t">${pe ? '작업장 확정' + (pe.date ? ' · 시작 ' + esc(pe.date) : '') : '정기평가 탭에서 시작'}</div></div>`; })()}
     <div class="card kpi"><div class="l">회의 · 수시평가 · 중량물 계획서</div><div class="n">${cnt('회의')} · ${cnt('수시')} · ${cnt('중량물')}</div><div class="t">건수</div></div>
@@ -398,7 +402,7 @@ function todos() {
   ['가공실', '품질실'].filter(w => wps().includes(w)).forEach(w => { const l = S.tbm.filter(t => t.wp === w).map(t => t.date).sort().pop(); const days = l ? Math.round((new Date(td) - new Date(l)) / 864e5) : null;
     if (days === null || days > 3) T.push([`${w} TBM ${days === null ? '기록 없음' : days + '일째 없음 (최근 ' + l + ')'}`, 'tbm']); });
   if (!ev('회의').length) T.push(['위험성평가 실시 회의 기록 없음', 'edu']);
-  const edus = ev('교육'), signed = new Set(edus.flatMap(e => Object.keys(e.sigs || {}).filter(n => (e.att || []).includes(n)))), total = S.meta.people.length;
+  const edus = ev('교육'), signed = new Set(edus.flatMap(e => (e.att || []).filter(n => isP(e, n)))), total = S.meta.people.length;
   if (!edus.length) T.push(['위험성평가 교육 기록 없음', 'edu']); else if (total && signed.size / total < .8) T.push([`교육 이수 ${Math.round(signed.size / total * 100)}% — 목표 80%까지 ${Math.ceil(total * .8) - signed.size}명 남음`, 'edu']);
   if (!rewardTotal()) T.push(['포상비 금액 미정 (계획서·예산에 자동 반영됨)', 'docs']);
   if (!docf().notice.date) T.push(['위험성평가 실시 공고일 미입력', 'docs']);
@@ -456,16 +460,16 @@ VIEWS.rows = () => {
 
 /* 참석자 · 서명 */
 function subObj(o, path) { if (!path) return o; let x = getPath(o, path); if (!x || typeof x !== 'object') { setPath(o, path, {}); x = getPath(o, path); } return x; }
-function attBlock(col, o, path = '', label = '참석자 서명') {
+function attBlock(col, o, path = '', label = '참석자 명단') {
   const t = path ? (getPath(o, path) || {}) : o;
   const names = t.att || [];
   const others = S.meta.people.filter(p => !names.includes(p.name));
-  const signed = names.filter(n => (t.sigs || {})[n]).length;
+  const signed = names.filter(n => isP(t, n)).length;
   const k = `${col}|${o.id}|${esc(path)}`;
-  return `<div class="row-h" style="margin:14px 0 6px"><b>${esc(label)}</b><span class="small muted">${signed} / ${names.length}명 서명</span><span class="sp"></span>
+  return `<div class="row-h" style="margin:14px 0 6px"><b>${esc(label)}</b><span class="small muted">${signed} / ${names.length}명 참석 · 서명은 인쇄한 A4에 직접</span><span class="sp"></span><button class="btn s" data-act="presAll" data-k="${k}">전원 참석</button>
     ${sel([['', '+ 인원 추가'], ...others.map(p => [p.name, `${p.name} ${[p.dept, p.pos].filter(Boolean).join('/')}`])], '', `data-addatt="${k}" class="inp" style="width:auto"`)}</div>
   <div class="att">${names.map(n => `<div class="a"><span class="nm">${esc(n)} <span class="small muted">${esc(pLabel(n))}</span></span>
-    ${(t.sigs || {})[n] ? `<img src="${t.sigs[n]}" data-sign="${k}|${esc(n)}" title="다시 서명">` : `<button class="btn s" data-sign="${k}|${esc(n)}">서명</button>`}
+    <label class="small" style="display:flex;align-items:center;gap:3px;white-space:nowrap"><input type="checkbox" data-pres="${k}|${esc(n)}" ${isP(t, n) ? 'checked' : ''}>참석</label>
     <button class="x" data-rmatt="${k}|${esc(n)}" title="빼기">×</button></div>`).join('') || '<span class="small muted">인원을 추가하세요</span>'}</div>`;
 }
 
@@ -476,9 +480,9 @@ VIEWS.tbm = () => {
   const list = S.tbm.filter(t => (t.date || '').startsWith(m)).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.wp || '').localeCompare(b.wp || ''));
   return `<div class="bar"><h2 style="margin:0">TBM 일지</h2><span class="sp"></span><input type="month" class="inp" style="width:auto" data-flt="month" value="${m}"><button class="btn" data-act="printTbmMonth">이 달 일지 전체 인쇄</button></div>
   <div class="bar"><label class="small">TBM 일자 <input type="date" class="inp" style="width:auto" data-flt="tbmDate" value="${esc(S.f.tbmDate || today())}"></label>${wps().map(w => `<button class="btn p" data-act="newTbm" data-wp="${esc(w)}">+ ${esc(w)} TBM</button>`).join('')}</div>
-  <p class="small muted" style="margin-bottom:8px">새 TBM은 같은 작업장의 직전 TBM 내용을 그대로 불러옵니다. 바뀐 것만 고치고 서명받으면 됩니다.</p>
-  <div class="lst">${list.map(t => { const n = (t.att || []).length, s = Object.keys(t.sigs || {}).filter(k => (t.att || []).includes(k)).length;
-    return `<div class="it" data-go="tbm/${t.id}"><b>${esc(t.date)}</b><span class="tag">${esc(t.wp)}</span><span class="sp small">${esc((t.work || '').split('\n')[0])}</span><span class="small ${s < n ? '' : 'muted'}">서명 ${s}/${n}</span></div>`; }).join('') || '<p class="muted small" style="padding:8px">이 달 기록이 없습니다.</p>'}</div>`;
+  <p class="small muted" style="margin-bottom:8px">새 TBM은 같은 작업장의 직전 TBM 내용을 그대로 불러옵니다. 바뀐 것만 고치고 참석 체크 후 인쇄해서 서명받으면 됩니다.</p>
+  <div class="lst">${list.map(t => { const n = (t.att || []).length, s = pCount(t);
+    return `<div class="it" data-go="tbm/${t.id}"><b>${esc(t.date)}</b><span class="tag">${esc(t.wp)}</span><span class="sp small">${esc((t.work || '').split('\n')[0])}</span><span class="small ${s < n ? '' : 'muted'}">참석 ${s}/${n}</span></div>`; }).join('') || '<p class="muted small" style="padding:8px">이 달 기록이 없습니다.</p>'}</div>`;
 };
 function tbmEdit(t) {
   const b = f => `tbm|${t.id}|${f}`;
@@ -500,7 +504,7 @@ VIEWS.edu = () => {
   if (S.id) { const e = S.events.find(x => x.id === S.id); if (e) return eduEdit(e); }
   const list = S.events.filter(e => e.type === '교육' || e.type === '회의').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return `<div class="bar"><h2 style="margin:0">교육 · 회의</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="회의">+ 위험성평가 회의</button><button class="btn p" data-act="newEv" data-type="교육">+ 위험성평가 교육</button></div>
-  <div class="lst">${list.map(e => `<div class="it" data-go="edu/${e.id}"><b>${esc(e.date || '날짜 미입력')}</b><span class="tag">${esc(e.type)}</span><span class="sp small">${esc(e.title || '')}</span><span class="small">서명 ${Object.keys(e.sigs || {}).filter(k => (e.att || []).includes(k)).length}/${(e.att || []).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+  <div class="lst">${list.map(e => `<div class="it" data-go="edu/${e.id}"><b>${esc(e.date || '날짜 미입력')}</b><span class="tag">${esc(e.type)}</span><span class="sp small">${esc(e.title || '')}</span><span class="small">참석 ${pCount(e)}/${(e.att || []).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
 };
 function eduEdit(e) {
   const b = f => `events|${e.id}|${f}`;
@@ -519,7 +523,7 @@ const SUP_DEFAULT = { '가공실': '백정국', '품질실': '이성수', '사�
 const wpRows = wp => S.rows.filter(r => (r.proc || '').startsWith(wp + '|')).sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || a.ord - b.ord);
 function wpStats(e, wp) {
   const rows = wpRows(wp), tgt = rows.filter(r => risk(r.f, r.s) >= 9), w = (e.wp || {})[wp] || {};
-  const att = w.att || [], signed = att.filter(n => (w.sigs || {})[n]).length;
+  const att = w.att || [], signed = att.filter(n => isP(w, n)).length;
   return { n: rows.length, draft: rows.filter(r => r.draft).length, tgt: tgt.length, meas: tgt.filter(r => (r.measure || '').trim()).length, done: tgt.filter(r => r.done).length, att: att.length, signed, ok: !!w.done, w };
 }
 const PSTEPS = ['① 유해·위험요인 파악', '② 위험성 추정·결정', '③ 감소대책 수립', '④ 확인·서명'];
@@ -539,7 +543,7 @@ function periodicMain(e) {
   <h3>작업장별 진행</h3>
   ${wps().map(w => { const st = wpStats(e, w); const procs = S.meta.procs.filter(p => p.wp === w).map(p => p.proc).join(' · ');
     return `<div class="card ${st.ok ? '' : 'hi'}"><div class="row-h"><b>${esc(w)}</b><span class="small muted">${esc(procs)}</span><span class="sp"></span><span class="tag ${st.ok ? 'b' : ''}">${st.ok ? '확정' : '진행중'}</span><button class="btn p s" data-go="periodic/${e.id}/${esc(w)}">평가 진행 →</button></div>
-    <div class="small" style="margin-top:6px">평가 항목 <b>${st.n}</b>개${st.draft ? ` (초안 미확인 ${st.draft})` : ''} · 개선대상 <b>${st.tgt}</b>개 · 감소대책 수립 ${st.meas}/${st.tgt} · 개선 완료 ${st.done}/${st.tgt} · 참여자 서명 ${st.signed}/${st.att}${st.w.date ? ' · 평가일 ' + esc(st.w.date) : ''}${st.w.evaluator ? ' · 평가자 ' + esc(st.w.evaluator) : ''}</div></div>`; }).join('')}
+    <div class="small" style="margin-top:6px">평가 항목 <b>${st.n}</b>개${st.draft ? ` (초안 미확인 ${st.draft})` : ''} · 개선대상 <b>${st.tgt}</b>개 · 감소대책 수립 ${st.meas}/${st.tgt} · 개선 완료 ${st.done}/${st.tgt} · 참여자 ${st.signed}/${st.att}명 참석${st.w.date ? ' · 평가일 ' + esc(st.w.date) : ''}${st.w.evaluator ? ' · 평가자 ' + esc(st.w.evaluator) : ''}</div></div>`; }).join('')}
   <div class="r">${fld('종합 의견 (결과서 첫 장에 들어갑니다)', ta(b('summary'), e.summary, 3))}</div>`;
 }
 function periodicWp(e, wp) {
@@ -566,7 +570,7 @@ function periodicWp(e, wp) {
     if (!w.date) warn.push('평가일 미입력'); if (!(w.att || []).length) warn.push('참여자 없음');
     body = `${warn.length ? `<div class="card hi small"><b>확정 전 확인</b><br>${warn.map(esc).join('<br>')}</div>` : '<div class="card small">빠진 항목이 없습니다.</div>'}
     <div class="r c3">${fld('평가일', inp(wb('date'), w.date, 'date'))}${fld('평가자 (관리감독자)', inp(wb('evaluator'), w.evaluator))}<label class="chk" style="align-self:end"><input type="checkbox" data-b="${wb('done')}" ${w.done ? 'checked' : ''} data-rerender><span><b>이 작업장 평가 확정</b></span></label></div>
-    ${attBlock('events', e, `wp.${wp}`, '평가 참여자 서명 (관리감독자·해당 작업 근로자)')}
+    ${attBlock('events', e, `wp.${wp}`, '평가 참여자 (관리감독자·해당 작업 근로자)')}
     <div class="bar" style="margin-top:12px"><button class="btn p" data-act="printPeriodic" data-id="${e.id}" data-wp="${esc(wp)}">${esc(wp)} 평가 결과 인쇄</button><button class="btn" data-act="printPeriodic" data-id="${e.id}">전체 결과서 인쇄</button></div>`; }
   return `<div class="bar"><button class="btn" data-go="periodic/${e.id}">← ${esc(e.title || '정기평가')}</button><span class="sp"></span>${wps().map(x => `<button class="btn s ${x === wp ? 'p' : ''}" data-go="periodic/${e.id}/${esc(x)}">${esc(x)}</button>`).join('')}</div>
   <h2>${esc(wp)} 정기 위험성평가</h2>
@@ -593,7 +597,7 @@ function adhocEdit(e) {
   <div class="r">${fld('변경 · 발생 내용', ta(b('content'), e.content, 3))}</div>
   <div class="r c2">${fld('평가 참여자', inp(b('members'), e.members, 'text', 'placeholder="관리감독자, 해당 작업 근로자 등"'))}${fld('평가 결과 요약', inp(b('result'), e.result))}</div>
   <div class="f" style="margin-top:8px"><span>사진</span>${phStrip(b('photos'), e.photos, '사진')}</div>
-  ${attBlock('events', e, '', '평가 참여자 서명')}
+  ${attBlock('events', e, '', '평가 참여자')}
   <div class="row-h" style="margin:16px 0 8px"><b>평가 항목 (평가표에 반영됨)</b><span class="sp"></span><button class="btn" data-act="printEv" data-id="${e.id}">수시평가 기록 인쇄</button><span class="sp"></span><button class="btn p" data-act="addAdhocRow" data-id="${e.id}">+ 항목 추가</button></div>
   ${linked.map(rowCard).join('') || '<p class="muted small">아직 항목이 없습니다.</p>'}`;
 }
@@ -664,7 +668,7 @@ function annualRows() {
   const F = S.meta.findings, fnd = no => F.find(f => f.no === no) || {};
   const fdone = no => { const f = fnd(no); return f.status === '완료' && f.due ? [f.due] : []; };
   const evs = t => S.events.filter(e => e.type === t);
-  const edus = evs('교육'), signedEdu = new Set(edus.flatMap(e => Object.keys(e.sigs || {}).filter(n => (e.att || []).includes(n))));
+  const edus = evs('교육'), signedEdu = new Set(edus.flatMap(e => (e.att || []).filter(n => isP(e, n))));
   const pe = evs('정기'); const peDates = pe.flatMap(e => [e.date, ...Object.values(e.wp || {}).map(w => w.date)]).filter(Boolean);
   const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9), tdone = tgt.filter(r => r.done);
   const tbmD = [...new Set(S.tbm.map(t => t.date + '|' + t.wp))].map(x => x.split('|')[0]).filter(Boolean);
@@ -773,7 +777,7 @@ function evPicker(type) {
   const list = S.events.filter(e => e.type === type).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const key = type === '회의' ? 'meetingId' : 'eduId', d = docf();
   const cur = (list.find(x => x.id === d[key]) || list[0] || {}).id || '';
-  return `<div class="card small">교육·회의 탭에서 작성한 ${type} 기록(서명 포함)이 이 문서로 자동 들어갑니다.
+  return `<div class="card small">교육·회의 탭에서 작성한 ${type} 기록(참석자 명단 포함)이 이 문서로 자동 들어갑니다.
     <div class="bar" style="margin:6px 0 0">${list.length ? sel(list.map(e => [e.id, `${e.date || '날짜 미입력'} ${e.title || ''}`]), cur, `data-b="meta||docf.${key}" data-rerender class="inp" style="width:auto"`) : ''}<button class="btn s" data-act="newEv" data-type="${type}">+ 새 ${type} 기록</button>${cur ? `<button class="btn s" data-go="edu/${cur}">이 기록 고치기 →</button>` : ''}</div></div>`;
 }
 const GEN = { cover: genCover, annual: genAnnual, notice: genNotice, meeting: e => genEvDoc('회의', e), edu: e => genEvDoc('교육', e), budget: genBudget };
@@ -870,6 +874,7 @@ document.addEventListener('change', e => {
   if (el.dataset.b) return onBind(el, 'change');
   if (el.dataset.flt) { S.f[el.dataset.flt] = el.value; if (el.dataset.flt === 'wp') S.f.proc = ''; if (el.dataset.flt !== 'tbmDate') route(); return; }
   if (el.dataset.hz) { const [tid, rid] = el.dataset.hz.split('|'); const t = S.tbm.find(x => x.id === tid); t.haz ||= []; t.haz = el.checked ? [...new Set([...t.haz, rid])] : t.haz.filter(x => x !== rid); queueSave('tbm', tid); return; }
+  if (el.dataset.pres) { const [col, id, path, n] = el.dataset.pres.split('|'); const o = subObj(getObj(col, id), path); o.pres ||= {}; if (el.checked) o.pres[n] = true; else { delete o.pres[n]; if (o.sigs) delete o.sigs[n]; } queueSave(col, id); return; }
   if (el.dataset.addatt) { const [col, id, path] = el.dataset.addatt.split('|'); const t = subObj(getObj(col, id), path); if (el.value) { t.att = [...(t.att || []), el.value]; queueSave(col, id); route(); } return; }
   if (el.id === 'yearSel') { flushAll().then(() => { location.hash = 'dash'; loadYear(+el.value); }); }
 });
@@ -1022,6 +1027,7 @@ ACT.draftOpinion = async a => {
   if ((e.opinion || '').trim() && !(await confirmBox('지금 적힌 의견을 초안으로 바꿀까요?', '기존 내용은 지워집니다.'))) return;
   e.opinion = opinionDraft(); await saveNow('events', e.id); route();
 };
+ACT.presAll = async a => { const [col, id, path] = a.dataset.k.split('|'); const o = subObj(getObj(col, id), path); o.pres ||= {}; (o.att || []).forEach(n => o.pres[n] = true); await saveNow(col, id); route(); };
 ACT.addRowWp = async a => {
   const wp = a.dataset.wp, p = S.meta.procs.find(x => x.wp === wp);
   const r = newRow({ proc: p ? procKey(p) : '' }); S.rows.push(r); await saveNow('rows', r.id); route();
@@ -1115,10 +1121,10 @@ async function printHTML(html) {
 window.addEventListener('afterprint', () => { $('#print').innerHTML = ''; });
 const head = (title, sub = '') => `<h1>${esc(title)}</h1>${sub ? `<p class="c small">${sub}</p>` : ''}`;
 const sigTable = (o) => {
-  const names = o.att || [], cells = names.map(n => `<td class="c">${esc(pLabel(n))}</td><td class="c">${esc(n)}</td><td class="c" style="width:22%">${(o.sigs || {})[n] ? `<img class="sig" src="${o.sigs[n]}">` : ''}</td>`);
-  const rows = []; for (let i = 0; i < cells.length; i += 2) rows.push(`<tr>${cells[i]}${cells[i + 1] || '<td></td><td></td><td></td>'}</tr>`);
-  const signed = names.filter(n => (o.sigs || {})[n]).length;
-  return `<table><tr><th>소속/직책</th><th>성 명</th><th>서명</th><th>소속/직책</th><th>성 명</th><th>서명</th></tr>${rows.join('')}</table><p class="rt small">참석 ${signed}명 / 대상 ${names.length}명</p>`;
+  const names = o.att || [], cells = names.map((n, i) => `<td class="c">${i + 1}</td><td class="c">${esc(pLabel(n))}</td><td class="c">${esc(n)}</td><td class="c">${(o.sigs || {})[n] ? `<img class="sig" src="${o.sigs[n]}">` : ''}</td>`);
+  const rows = []; for (let i = 0; i < cells.length; i += 2) rows.push(`<tr style="height:12mm">${cells[i]}${cells[i + 1] || '<td></td><td></td><td></td><td></td>'}</tr>`);
+  const c = pCount(o);
+  return `<table><colgroup>${[4,14,11,21,4,14,11,21].map(w => `<col style="width:${w}%">`).join('')}</colgroup><tr><th>No</th><th>소속/직책</th><th>성 명</th><th>서 명</th><th>No</th><th>소속/직책</th><th>성 명</th><th>서 명</th></tr>${rows.join('')}</table><p class="rt small">참석 ${c ? c : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}명 / 대상 ${names.length}명</p>`;
 };
 const phPrint = ids => (ids || []).length ? `<div class="phs">${ids.map(i => `<img data-ph="${i}">`).join('')}</div>` : '';
 const timeStr = o => o.t1 ? ` ${o.t1}${o.t2 ? ' ~ ' + o.t2 : ''}` : '';
@@ -1167,7 +1173,7 @@ ACT.printPeriodic = a => {
   ${only ? '' : procTableHTML()}
   <h2>■ 작업장별 실시 현황</h2>
   <table><tr><th>작업장</th><th>평가일</th><th>평가자(관리감독자)</th><th>참여 인원</th><th>평가 항목</th><th>개선 대상(9↑)</th><th>대책 수립</th><th>개선 완료</th><th>확정</th></tr>
-  ${st.map(x => `<tr><td class="c">${esc(x.name)}</td><td class="c">${esc(x.w.date || '')}</td><td class="c">${esc(x.w.evaluator || '')}</td><td class="c">${x.signed}명 서명 / ${x.att}명</td><td class="c">${x.n}</td><td class="c">${x.tgt}</td><td class="c">${x.meas}</td><td class="c">${x.done}</td><td class="c">${x.ok ? '확정' : ''}</td></tr>`).join('')}</table>
+  ${st.map(x => `<tr><td class="c">${esc(x.name)}</td><td class="c">${esc(x.w.date || '')}</td><td class="c">${esc(x.w.evaluator || '')}</td><td class="c">${x.signed ? x.signed + '명' : '&nbsp;&nbsp;&nbsp;&nbsp;명'} / ${x.att}명</td><td class="c">${x.n}</td><td class="c">${x.tgt}</td><td class="c">${x.meas}</td><td class="c">${x.done}</td><td class="c">${x.ok ? '확정' : ''}</td></tr>`).join('')}</table>
   <h2>■ 위험도 등급별 분포</h2>
   <table><tr><th>작업장</th>${GR.map(g => `<th>${g}</th>`).join('')}<th>계</th></tr>
   ${W.map(w => { const rs = wpRows(w); return `<tr><td class="c">${esc(w)}</td>${GR.map(g => `<td class="c">${rs.filter(r => grade(risk(r.f, r.s)) === g).length}</td>`).join('')}<td class="c">${rs.length}</td></tr>`; }).join('')}</table>
@@ -1203,7 +1209,7 @@ function tbmHTML(t) {
   const hz = (t.haz || []).map(id => S.rows.find(r => r.id === id)).filter(Boolean);
   return `<div class="bk">${head('TBM (작업 전 안전점검회의) 일지')}
   <table><tr><th style="width:14%">일 자</th><td>${kdateW(t.date)} ${esc(t.time || '')}</td><th style="width:14%">작업장</th><td>${esc(t.wp)}</td></tr>
-  <tr><th>진행자</th><td>${esc(t.leader)}</td><th>참석</th><td>${Object.keys(t.sigs || {}).filter(k => (t.att || []).includes(k)).length}명</td></tr>
+  <tr><th>진행자</th><td>${esc(t.leader)}</td><th>참석</th><td>${pCount(t) ? pCount(t) + '명' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명'}</td></tr>
   <tr><th>작업 내용</th><td colspan="3">${nl(t.work)}</td></tr></table>
   <table><tr><th style="width:5%">No</th><th style="width:14%">공정</th><th>유해·위험요인</th><th style="width:9%">위험도</th><th>안전대책</th></tr>
   ${hz.map((r, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc((r.proc || '').split('|')[1])}</td><td>${nl(r.hazard)}</td><td class="c">${risk(r.f, r.s)}</td><td>${nl(r.measure || r.current)}</td></tr>`).join('')}
@@ -1227,7 +1233,7 @@ function evHTML(e) {
   else if (e.type === '회의') { const rep = '유성배'; h = `${head('위험성평가 회의결과')}
     <table><tr><th style="width:16%">회의일시</th><td>${kdateW(e.date)}${timeStr(e)}</td></tr><tr><th>회의장소</th><td>${esc(e.place)}</td></tr></table>
     <h2>▣ 회의내용</h2><div class="ind">${nl(e.content)}</div>
-    <h2>▣ 근로자대표 의견</h2><table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:26%" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '(서명)'}</td></tr></table>
+    <h2>▣ 근로자대표 의견</h2><table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:26%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '(서명)'}</td></tr></table>
     <h2>▣ 위험성평가 회의개최 사진 또는 근거서류</h2>${phPrint(e.photos) || '<table><tr><td style="height:30mm"></td></tr></table>'}
     <h2>▣ 참석자 명단</h2>${sigTable(e)}`; }
   else if (e.type === '수시') { const rows = S.rows.filter(r => r.ev === e.id); h = `<div class="land small">${approveHTML('28%')}${head('수시 위험성평가 실시 기록', esc(S.meta.company) + ' · 실시계획서 5-다')}
@@ -1255,6 +1261,7 @@ ACT.printEv = a => printHTML(evHTML(S.events.find(x => x.id === a.dataset.id)));
 ACT.printDoc = async () => { await flushAll(); const sec = S.f.doc || 'cover'; printHTML(`<div class="docpage">${docHTML(sec)}</div>`); };
 ACT.printAllDocs = async () => { await flushAll(); const D = DOCDEF(); printHTML(D.map((d, i) => `<div class="docpage ${i < D.length - 1 ? 'pb' : ''}">${docHTML(d.id)}</div>`).join('')); };
 
+$('#saveBtn').addEventListener('click', async () => { const ed = $('#docEd'); if (ed) { S.docs[ed.dataset.sec] = ed.innerHTML; queueSave('docs', ed.dataset.sec, 0); } await flushAll(); stIdle(); toast(MODE === 'cloud' ? '서버에 저장했습니다' : '이 브라우저에 저장했습니다'); });
 /* ============ 시작 ============ */
 (async () => {
   const ys = $('#yearSel'); const cy = new Date().getFullYear();
