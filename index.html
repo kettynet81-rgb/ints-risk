@@ -139,7 +139,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.1';
+const VERSION = 'v1.2';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -148,9 +148,9 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const pad = n => String(n).padStart(2, '0');
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const today = () => ymd(new Date());
-const kdate = s => { if (!s) return ''; const [y, m, d] = s.split('-'); return `${y}년 ${+m}월 ${+d}일`; };
+const kdate = s => { if (!s) return '　　　　년　　월　　일'; const [y, m, d] = s.split('-'); return `${y}년 ${+m}월 ${+d}일`; };
 const WD = ['일','월','화','수','목','금','토'];
-const kdateW = s => { if (!s) return ''; const [y,m,d]=s.split('-').map(Number); return `${kdate(s)} (${WD[new Date(y,m-1,d).getDay()]})`; };
+const kdateW = s => { if (!s) return kdate(''); const [y,m,d]=s.split('-').map(Number); return `${kdate(s)} (${WD[new Date(y,m-1,d).getDay()]})`; };
 const clone = o => JSON.parse(JSON.stringify(o ?? null));
 function toast(m, ms = 2200) { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', ms); }
 
@@ -353,7 +353,7 @@ VIEWS.dash = () => {
     <div class="card kpi"><div class="l">이번 달 TBM 실시일</div><div class="n">${new Set(tbmM.map(t => t.date + t.wp)).size}회</div><div class="t">${esc(tbmBy)}${lastT ? ' · 최근 ' + esc(lastT.date) : ''}</div></div>
     <div class="card kpi"><div class="l">위험성평가 교육 이수 (서명 기준)</div><div class="n">${total ? Math.round(eduSigned.size / total * 100) : 0}%</div><div class="t">${eduSigned.size} / ${total}명 · 목표 80% 이상 · 교육 ${edus.length}회</div></div>
     ${(() => { const pe = S.events.filter(e => e.type === '정기').sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0]; const st = pe ? wps().map(w => wpStats(pe, w)) : [];
-      return `<div class="card kpi" ${pe ? `data-go="periodic/${pe.id}" style="cursor:pointer"` : 'data-go="periodic" style="cursor:pointer"'}><div class="l">정기 위험성평가</div><div class="n">${pe ? `${st.filter(x => x.ok).length} / ${st.length}` : '시작 전'}</div><div class="t">${pe ? '작업장 확정 · 시작 ' + esc(pe.date) : '정기평가 탭에서 시작'}</div></div>`; })()}
+      return `<div class="card kpi" ${pe ? `data-go="periodic/${pe.id}" style="cursor:pointer"` : 'data-go="periodic" style="cursor:pointer"'}><div class="l">정기 위험성평가</div><div class="n">${pe ? `${st.filter(x => x.ok).length} / ${st.length}` : '시작 전'}</div><div class="t">${pe ? '작업장 확정' + (pe.date ? ' · 시작 ' + esc(pe.date) : '') : '정기평가 탭에서 시작'}</div></div>`; })()}
     <div class="card kpi"><div class="l">회의 · 수시평가 · 중량물 계획서</div><div class="n">${cnt('회의')} · ${cnt('수시')} · ${cnt('중량물')}</div><div class="t">건수</div></div>
   </div>
   <h3>지적사항 진행</h3>
@@ -430,7 +430,7 @@ VIEWS.tbm = () => {
   const m = S.f.month || today().slice(0, 7);
   const list = S.tbm.filter(t => (t.date || '').startsWith(m)).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.wp || '').localeCompare(b.wp || ''));
   return `<div class="bar"><h2 style="margin:0">TBM 일지</h2><span class="sp"></span><input type="month" class="inp" style="width:auto" data-flt="month" value="${m}"><button class="btn" data-act="printTbmMonth">이 달 일지 전체 인쇄</button></div>
-  <div class="bar">${wps().map(w => `<button class="btn p" data-act="newTbm" data-wp="${esc(w)}">+ 오늘 ${esc(w)} TBM</button>`).join('')}</div>
+  <div class="bar"><label class="small">TBM 일자 <input type="date" class="inp" style="width:auto" data-flt="tbmDate" value="${esc(S.f.tbmDate || today())}"></label>${wps().map(w => `<button class="btn p" data-act="newTbm" data-wp="${esc(w)}">+ ${esc(w)} TBM</button>`).join('')}</div>
   <p class="small muted" style="margin-bottom:8px">새 TBM은 같은 작업장의 직전 TBM 내용을 그대로 불러옵니다. 바뀐 것만 고치고 서명받으면 됩니다.</p>
   <div class="lst">${list.map(t => { const n = (t.att || []).length, s = Object.keys(t.sigs || {}).filter(k => (t.att || []).includes(k)).length;
     return `<div class="it" data-go="tbm/${t.id}"><b>${esc(t.date)}</b><span class="tag">${esc(t.wp)}</span><span class="sp small">${esc((t.work || '').split('\n')[0])}</span><span class="small ${s < n ? '' : 'muted'}">서명 ${s}/${n}</span></div>`; }).join('') || '<p class="muted small" style="padding:8px">이 달 기록이 없습니다.</p>'}</div>`;
@@ -455,7 +455,7 @@ VIEWS.edu = () => {
   if (S.id) { const e = S.events.find(x => x.id === S.id); if (e) return eduEdit(e); }
   const list = S.events.filter(e => e.type === '교육' || e.type === '회의').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return `<div class="bar"><h2 style="margin:0">교육 · 회의</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="회의">+ 위험성평가 회의</button><button class="btn p" data-act="newEv" data-type="교육">+ 위험성평가 교육</button></div>
-  <div class="lst">${list.map(e => `<div class="it" data-go="edu/${e.id}"><b>${esc(e.date)}</b><span class="tag">${esc(e.type)}</span><span class="sp small">${esc(e.title || '')}</span><span class="small">서명 ${Object.keys(e.sigs || {}).filter(k => (e.att || []).includes(k)).length}/${(e.att || []).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+  <div class="lst">${list.map(e => `<div class="it" data-go="edu/${e.id}"><b>${esc(e.date || '날짜 미입력')}</b><span class="tag">${esc(e.type)}</span><span class="sp small">${esc(e.title || '')}</span><span class="small">서명 ${Object.keys(e.sigs || {}).filter(k => (e.att || []).includes(k)).length}/${(e.att || []).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
 };
 function eduEdit(e) {
   const b = f => `events|${e.id}|${f}`;
@@ -483,7 +483,7 @@ VIEWS.periodic = () => {
   const list = S.events.filter(e => e.type === '정기').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return `<div class="bar"><h2 style="margin:0">정기 위험성평가</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="정기">+ ${S.year}년 정기평가 시작</button></div>
   <p class="small muted" style="margin-bottom:8px">실시계획서 5-나: 사업장 전반에 대해 매년 1회 실시. 작업장(가공실·품질실·사무실)별로 ① 위험요인 파악 → ② 위험성 결정 → ③ 감소대책 → ④ 참여자 확인·서명 순서로 진행하고, 결과서를 인쇄합니다.</p>
-  <div class="lst">${list.map(e => { const st = wps().map(w => wpStats(e, w)); return `<div class="it" data-go="periodic/${e.id}"><b>${esc(e.date)}</b><span class="sp">${esc(e.title || '')}</span><span class="small">작업장 확정 ${st.filter(x => x.ok).length}/${st.length}</span></div>`; }).join('') || '<p class="muted small" style="padding:8px">아직 시작하지 않았습니다.</p>'}</div>`;
+  <div class="lst">${list.map(e => { const st = wps().map(w => wpStats(e, w)); return `<div class="it" data-go="periodic/${e.id}"><b>${esc(e.date || '날짜 미입력')}</b><span class="sp">${esc(e.title || '')}</span><span class="small">작업장 확정 ${st.filter(x => x.ok).length}/${st.length}</span></div>`; }).join('') || '<p class="muted small" style="padding:8px">아직 시작하지 않았습니다.</p>'}</div>`;
 };
 function periodicMain(e) {
   const b = f => `events|${e.id}|${f}`;
@@ -536,7 +536,7 @@ VIEWS.adhoc = () => {
   const list = S.events.filter(e => e.type === '수시').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return `<div class="bar"><h2 style="margin:0">수시 위험성평가</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="수시">+ 수시평가 기록</button></div>
   <p class="small muted" style="margin-bottom:8px">실시계획서 5-다: 산업재해 발생, 작업장·설비·작업방법 변경, 정비·보수, 설비 신규 도입·이전, 원재료·화학물질 변경 시 작업 착수 전에 실시. 결과는 평가표에 반영됩니다.</p>
-  <div class="lst">${list.map(e => `<div class="it" data-go="adhoc/${e.id}"><b>${esc(e.date)}</b><span class="tag">${esc((e.reason || '').slice(0, 1))}</span><span class="sp small">${esc(e.target || '')}</span><span class="small muted">항목 ${S.rows.filter(r => r.ev === e.id).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+  <div class="lst">${list.map(e => `<div class="it" data-go="adhoc/${e.id}"><b>${esc(e.date || '날짜 미입력')}</b><span class="tag">${esc((e.reason || '').slice(0, 1))}</span><span class="sp small">${esc(e.target || '')}</span><span class="small muted">항목 ${S.rows.filter(r => r.ev === e.id).length}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
 };
 function adhocEdit(e) {
   const b = f => `events|${e.id}|${f}`;
@@ -560,7 +560,7 @@ VIEWS.heavy = () => {
   const list = S.events.filter(e => e.type === '중량물').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return `<div class="bar"><h2 style="margin:0">중량물 취급 작업계획서</h2><span class="sp"></span><button class="btn p" data-act="newEv" data-type="중량물">+ 작업계획서</button></div>
   <p class="small muted" style="margin-bottom:8px">실시계획서 8-바: 중량물 이송·취급 작업은 작업계획서를 작성하고 그 내용을 위험성평가에 반영.</p>
-  <div class="lst">${list.map(e => `<div class="it" data-go="heavy/${e.id}"><b>${esc(e.date)}</b><span class="sp small">${esc(e.title || '')}</span><span class="small muted">${esc(e.weight || '')}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
+  <div class="lst">${list.map(e => `<div class="it" data-go="heavy/${e.id}"><b>${esc(e.date || '날짜 미입력')}</b><span class="sp small">${esc(e.title || '')}</span><span class="small muted">${esc(e.weight || '')}</span></div>`).join('') || '<p class="muted small" style="padding:8px">기록이 없습니다.</p>'}</div>`;
 };
 function heavyEdit(e) {
   const b = f => `events|${e.id}|${f}`;
@@ -647,7 +647,7 @@ function onBind(el) {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.dataset.b) return onBind(el);
-  if (el.dataset.flt) { S.f[el.dataset.flt] = el.value; if (el.dataset.flt === 'wp') S.f.proc = ''; route(); return; }
+  if (el.dataset.flt) { S.f[el.dataset.flt] = el.value; if (el.dataset.flt === 'wp') S.f.proc = ''; if (el.dataset.flt !== 'tbmDate') route(); return; }
   if (el.dataset.hz) { const [tid, rid] = el.dataset.hz.split('|'); const t = S.tbm.find(x => x.id === tid); t.haz ||= []; t.haz = el.checked ? [...new Set([...t.haz, rid])] : t.haz.filter(x => x !== rid); queueSave('tbm', tid); return; }
   if (el.dataset.addatt) { const [col, id, path] = el.dataset.addatt.split('|'); const t = subObj(getObj(col, id), path); if (el.value) { t.att = [...(t.att || []), el.value]; queueSave(col, id); route(); } return; }
   if (el.id === 'yearSel') { flushAll().then(() => { location.hash = 'dash'; loadYear(+el.value); }); }
@@ -689,6 +689,12 @@ function ask(title, ph = '', val = '') {
     const m = modal(`<h3>${esc(title)}</h3><input class="inp" id="askIn" placeholder="${esc(ph)}" value="${esc(val)}"><div class="acts"><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">확인</button></div>`,
       (a, close, mm) => { const v = mm.querySelector('#askIn').value; close(); res(a === 'ok' ? v : null); });
     const i = m.querySelector('#askIn'); i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') { m.remove(); res(i.value); } });
+  });
+}
+function askDate(title, val = '') {
+  return new Promise(res => {
+    const m = modal(`<h3>${esc(title)}</h3><input type="date" class="inp" id="askD" value="${esc(val)}"><p class="small muted" style="margin-top:6px">비워 두면 날짜 칸을 빈칸으로 인쇄합니다 (손으로 기입).</p><div class="acts"><button class="btn" data-m="no">취소</button><button class="btn p" data-m="ok">인쇄</button></div>`,
+      (a, close, mm) => { const v = mm.querySelector('#askD').value; close(); res(a === 'ok' ? v : null); });
   });
 }
 function confirmBox(title, msg = '') {
@@ -748,18 +754,19 @@ ACT.showDel = () => {
 };
 ACT.newTbm = async a => {
   const wp = a.dataset.wp, prev = S.tbm.filter(t => t.wp === wp).sort((x, y) => (y.date || '').localeCompare(x.date || '') || (y.at || 0) - (x.at || 0))[0];
-  const dup = S.tbm.find(t => t.wp === wp && t.date === today());
-  if (dup && !(await confirmBox(`오늘 ${wp} TBM이 이미 있습니다`, '하나 더 만들까요? (취소하면 기존 일지를 엽니다)'))) { go('tbm', dup.id); return; }
+  const dt = S.f.tbmDate || today();
+  const dup = S.tbm.find(t => t.wp === wp && t.date === dt);
+  if (dup && !(await confirmBox(`${dt} ${wp} TBM이 이미 있습니다`, '하나 더 만들까요? (취소하면 기존 일지를 엽니다)'))) { go('tbm', dup.id); return; }
   const def = S.meta.people.filter(p => p.wp === wp).map(p => p.name);
   const leader = S.meta.tbmLeader || '';
-  const t = { id: uid(), year: S.year, at: Date.now(), date: today(), time: '08:30', wp, leader, work: prev?.work || '', haz: prev?.haz ? [...prev.haz] : S.rows.filter(r => (r.proc || '').startsWith(wp + '|') && risk(r.f, r.s) >= 9).map(r => r.id),
+  const t = { id: uid(), year: S.year, at: Date.now(), date: dt, time: '', wp, leader, work: prev?.work || '', haz: prev?.haz ? [...prev.haz] : S.rows.filter(r => (r.proc || '').startsWith(wp + '|') && risk(r.f, r.s) >= 9).map(r => r.id),
     extra: prev?.extra || '', note: '', health: false, ppe: false, att: prev?.att ? [...prev.att] : [...new Set([leader, ...def].filter(Boolean))], sigs: {} };
   S.tbm.push(t); await saveNow('tbm', t.id); go('tbm', t.id);
 };
 ACT.newEv = async a => {
   const type = a.dataset.type, all = S.meta.people.map(p => p.name);
   if (type === '정기') { const ex = S.events.find(e => e.type === '정기'); if (ex && !(await confirmBox(`${S.year}년 정기평가가 이미 있습니다`, '하나 더 만들까요? (취소하면 기존 평가를 엽니다)'))) { go('periodic', ex.id); return; } }
-  const base = { id: uid(), year: S.year, at: Date.now(), type, date: today(), photos: [], sigs: {} };
+  const base = { id: uid(), year: S.year, at: Date.now(), type, date: '', photos: [], sigs: {} };
   const o = type === '교육' ? { ...base, t1: '', t2: '', place: '2층 사무실', teacher: '김은식', title: '위험성평가 교육', content: EDU_DEFAULT, att: all }
     : type === '회의' ? { ...base, t1: '', t2: '', place: '2층 사무실', title: `${S.year}년 위험성평가 실시 회의`, content: MEET_DEFAULT, opinion: '', att: all }
     : type === '수시' ? { ...base, reason: '', proc: '', target: '', content: '', members: '', result: '', att: [] }
@@ -897,7 +904,7 @@ function photoPairsHTML(list) {
   return `<h2>■ 개선 전·후 사진</h2><table>${t.map(r => `<tr class="bk"><td style="width:24%">${esc(procLabel(r.proc))}<br>${nl(r.hazard)}<br><span class="small">${nl(r.measure)}</span></td><td style="width:38%" class="c"><div class="small">개선 전</div>${(r.before || []).slice(0, 2).map(i => `<img data-ph="${i}" style="max-width:100%;max-height:55mm">`).join('')}</td><td class="c"><div class="small">개선 후</div>${(r.after || []).slice(0, 2).map(i => `<img data-ph="${i}" style="max-width:100%;max-height:55mm">`).join('')}</td></tr>`).join('')}</table>`;
 }
 ACT.printRows = () => {
-  printHTML(`<div class="land small">${approveHTML('28%')}${head(`${S.year}년 위험성평가표`, `${esc(S.meta.company)} · 평가방법: 빈도(1~5) × 강도(1~4) · 출력 ${today()}`)}
+  printHTML(`<div class="land small">${approveHTML('28%')}${head(`${S.year}년 위험성평가표`, `${esc(S.meta.company)} · 평가방법: 빈도(1~5) × 강도(1~4)`)}
   ${procTableHTML()}
   <h2>■ 위험성평가 결과</h2>${riskTableHTML(S.rows)}${delHTML()}</div>`);
 };
@@ -928,18 +935,20 @@ ACT.printPeriodic = a => {
   const tail = `<div><h1>위험성 감소대책 개선 실행계획</h1><p class="c small">위험도 9 이상 항목 (실시계획서 6-다 4·5단계)</p>${planHTML(all)}${photoPairsHTML(all)}${only ? '' : delHTML()}</div>`;
   printHTML(`<div class="land small">${cover}${pages}${tail}</div>`);
 };
-ACT.printPost = () => {
+ACT.printPost = async () => {
+  const pd = await askDate('게시일'); if (pd === null) return;
   const rows = S.rows.filter(r => risk(r.f, r.s) >= 9 || r.measure).sort((a, b) => procOrder(a.proc) - procOrder(b.proc) || risk(b.f, b.s) - risk(a.f, a.s));
-  printHTML(`<div class="land">${head(`${S.year}년 위험성평가 결과 알림`, `${esc(S.meta.company)} · 게시일 ${kdate(today())}`)}
+  printHTML(`<div class="land">${head(`${S.year}년 위험성평가 결과 알림`, `${esc(S.meta.company)} · 게시일 ${kdate(pd)}`)}
   <p>당사는 ${S.year}년 위험성평가를 실시하였으며, 주요 유해·위험요인과 감소대책, 개선 후 남아 있는 위험(잔류 위험성)을 다음과 같이 알립니다. 작업 전 반드시 확인하고 안전수칙을 지켜 주십시오.</p>
   <table><tr><th>작업장 · 공정</th><th>주요 유해·위험요인</th><th>위험도</th><th>감소대책</th><th>잔류 위험성</th><th>근로자 준수사항</th></tr>
   ${rows.map(r => { const R = risk(r.f, r.s), R2 = risk(r.f2, r.s2); return `<tr><td>${esc(procLabel(r.proc))}</td><td>${nl(r.hazard)}</td><td class="c">${R} ${grade(R)}</td><td>${nl(r.measure)}</td><td class="c">${R2 ? R2 + ' ' + grade(R2) : (r.done ? '' : '개선 진행중')}</td><td>${nl(r.current)}</td></tr>`; }).join('')}</table>
   <p class="small">평가 항목 전체 ${S.rows.length}개 중 위험도 9 이상 ${S.rows.filter(r => risk(r.f, r.s) >= 9).length}개 · 문의: 위험성평가 담당자</p>
   <p class="rt" style="margin-top:14px"><b>${esc(S.meta.company)} 대표 ${esc(S.meta.ceo)}</b></p></div>`);
 };
-ACT.printFind = () => {
+ACT.printFind = async () => {
+  const wd = await askDate('보고서 작성일'); if (wd === null) return;
   const F = S.meta.findings;
-  printHTML(`${head('2025년 위험성평가 사후점검 지적사항 개선 결과', `${esc(S.meta.company)} · 점검일 2025.07.30 · 작성 ${kdate(today())}`)}
+  printHTML(`${head('2025년 위험성평가 사후점검 지적사항 개선 결과', `${esc(S.meta.company)} · 점검일 2025.07.30 · 작성 ${kdate(wd)}`)}
   <table><tr><th style="width:5%">No</th><th style="width:22%">지적사항</th><th>개선 내용</th><th style="width:10%">담당</th><th style="width:12%">완료일</th><th style="width:8%">상태</th></tr>
   ${F.map(f => `<tr><td class="c">${f.no}</td><td>${esc(f.title)}<br><span class="small">${esc(f.detail)}</span></td><td>${nl(f.action)}</td><td class="c">${esc(f.owner)}</td><td class="c">${esc(f.due)}</td><td class="c">${esc(f.status)}</td></tr>`).join('')}</table>
   ${F.filter(f => (f.photos || []).length).map(f => `<div class="bk"><h2>${f.no}. ${esc(f.title)} — 증빙</h2>${phPrint(f.photos)}</div>`).join('')}`);
