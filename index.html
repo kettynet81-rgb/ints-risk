@@ -115,8 +115,13 @@ table.ev td textarea{min-height:34px}
 .mo img.big{max-width:100%;display:block;margin:0 auto}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;z-index:200;display:none;max-width:90vw}
 #print{display:none}
-@page{size:A4;margin:12mm}
-@page land{size:A4 landscape;margin:9mm}
+@page{size:A4;margin:0}
+@page land{size:A4 landscape;margin:0}
+.pw{width:100%;border-collapse:collapse}
+.pw>thead>tr>td,.pw>tfoot>tr>td{height:12mm;border:none;padding:0}
+.pw>tbody>tr>td{border:none;padding:0 14mm;vertical-align:top}
+.pw.lw>tbody>tr>td{padding:0 10mm}
+.pw.lw>thead>tr>td,.pw.lw>tfoot>tr>td{height:9mm}
 @media print{
   body>*:not(#print){display:none!important}
   #print{display:block}
@@ -125,6 +130,7 @@ table.ev td textarea{min-height:34px}
   #print .pb{break-after:page}
   #print table{page-break-inside:auto}
   #print tr{break-inside:avoid}
+  #print .pw>tbody>tr{break-inside:auto}
 }
 </style>
 </head>
@@ -142,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.5';
+const VERSION = 'v1.6';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -512,10 +518,80 @@ function eduEdit(e) {
   <h2>위험성평가 ${esc(e.type)}${e.type === '교육' ? ' 실시 결과 보고서' : '결과'}</h2>
   <div class="r c4">${fld('일자', inp(b('date'), e.date, 'date'))}${fld('시작', inp(b('t1'), e.t1, 'time'))}${fld('종료', inp(b('t2'), e.t2, 'time'))}${fld('장소', inp(b('place'), e.place))}</div>
   ${e.type === '교육' ? `<div class="r c2">${fld('강사', inp(b('teacher'), e.teacher))}${fld('교육 구분', inp(b('title'), e.title, 'text', 'placeholder="예: 정기 위험성평가 결과 교육"'))}</div>` : `<div class="r">${fld('회의 제목', inp(b('title'), e.title, 'text', 'placeholder="예: 2026년 위험성평가 실시 회의"'))}</div>`}
-  <div class="r">${fld(e.type === '교육' ? '교육 내용' : '회의 내용', ta(b('content'), e.content, 6))}</div>
-  ${e.type === '회의' ? `<div class="r">${fld('근로자대표 의견', ta(b('opinion'), e.opinion, 5))}</div><div class="bar" style="margin-top:6px"><button class="btn s" data-act="draftOpinion" data-id="${e.id}">앱 기록으로 의견 초안 만들기</button><span class="small muted">지적사항 진행, 평가 결과, 작업장 근로자 의견, TBM 특이사항을 모아 초안을 씁니다. 고쳐서 쓰세요.</span></div>` : ''}
+  ${e.type === '회의' ? meetingFields(e) : `<div class="r">${fld('교육 내용', ta(b('content'), e.content, 6))}</div>`}
   <div class="f" style="margin-top:8px"><span>${e.type === '교육' ? '교육' : '회의개최'} 사진 · 근거서류</span>${phStrip(b('photos'), e.photos, '사진')}</div>
   ${attBlock('events', e)}`;
+}
+
+const ROLES = { chief: ['총괄관리책임자', '장재신'], mgr: ['위험성평가 담당자', '김은식'], rep: ['근로자대표', '유성배'] };
+const SPEAKERS = () => [['', '발언자'], ['대표이사 ' + S.meta.ceo, '대표이사 ' + S.meta.ceo], ...Object.values(ROLES).map(([r, n]) => [r + ' ' + n, r + ' ' + n]),
+  ...S.meta.people.filter(p => !['박종성', ...Object.values(ROLES).map(x => x[1])].includes(p.name)).map(p => { const l = `${p.dept ? p.dept + ' ' : ''}${p.pos ? p.pos + ' ' : ''}${p.name}`; return [l, l]; })];
+function meetingFields(e) {
+  const b = f => `events|${e.id}|${f}`, ag = e.agenda || [], ac = e.actions || [];
+  const spOpts = SPEAKERS();
+  return `<div class="card hi" style="margin-top:10px"><div class="row-h"><b>회의록 자동 작성</b><span class="sp"></span><button class="btn p" data-act="draftMeeting" data-id="${e.id}">작년 기록 + 올해 계획으로 채우기</button></div>
+    <p class="small muted" style="margin-top:4px">사후점검 지적사항 진행, 평가표 고위험 공정·비정상 작업, 목표·예산을 모아 회의 목적 · 전년도 검토 · 안건별 발언 · 의결 사항 · 향후 일정을 초안으로 채웁니다. <b>회의 날짜를 먼저 넣으면</b> 향후 일정 날짜도 자동으로 잡힙니다.</p></div>
+  <h3>1. 회의 목적 및 배경</h3>${ta(b('purpose'), e.purpose, 4, 'class="inp"')}
+  <h3>2. 전년도 실적 검토</h3>${ta(b('review'), e.review, 5, 'class="inp"')}
+  <h3>3. 안건별 토의 내용 (발언)</h3>
+  ${ag.map((x, i) => `<div class="card"><div class="row-h"><b>안건 ${i + 1}.</b><input class="inp" style="flex:1" data-b="${b(`agenda.${i}.t`)}" value="${esc(x.t)}"><button class="btn s g" data-act="arrDel" data-k="events|${e.id}|agenda" data-i="${i}">안건 삭제</button></div>
+    ${(x.talks || []).map((t, j) => `<div class="r" style="grid-template-columns:200px 1fr auto;align-items:start">${sel(spOpts.some(o => o[0] === t.who) ? spOpts : [...spOpts, [t.who, t.who]], t.who, `data-b="${b(`agenda.${i}.talks.${j}.who`)}" class="inp"`)}${ta(b(`agenda.${i}.talks.${j}.text`), t.text, 3, 'class="inp"')}<button class="btn s g" data-act="arrDel" data-k="events|${e.id}|agenda.${i}.talks" data-i="${j}">×</button></div>`).join('')}
+    <button class="btn s" data-act="arrAdd" data-k="events|${e.id}|agenda.${i}.talks" style="margin-top:6px">+ 발언</button></div>`).join('')}
+  <button class="btn s" data-act="arrAdd" data-k="events|${e.id}|agenda">+ 안건</button>
+  <h3>4. 회의 결과 및 의결 사항</h3>${ta(b('decisions'), e.decisions, 6, 'class="inp"')}
+  <h3>5. 향후 추진 일정</h3>
+  <div class="scroll"><table class="t ev"><tr><th style="width:22%">일정</th><th>추진 내용</th><th style="width:15%">담당</th><th style="width:5%"></th></tr>
+  ${ac.map((x, i) => `<tr><td>${inp(b(`actions.${i}.when`), x.when, 'text', 'placeholder="예: 10/21 ~ 10/23"')}</td><td>${inp(b(`actions.${i}.task`), x.task)}</td><td>${inp(b(`actions.${i}.owner`), x.owner)}</td><td><button class="btn s g" data-act="arrDel" data-k="events|${e.id}|actions" data-i="${i}">삭제</button></td></tr>`).join('')}</table></div>
+  <button class="btn s" data-act="arrAdd" data-k="events|${e.id}|actions" style="margin-top:6px">+ 일정</button>
+  <h3>근로자대표 의견 (서명란과 함께 인쇄)</h3>${ta(b('opinion'), e.opinion, 4, 'class="inp"')}`;
+}
+function meetingDraft(e) {
+  const F = S.meta.findings, fd = F.filter(f => f.status === '완료'), fp = F.filter(f => f.status === '진행중'), fo = F.filter(f => f.status !== '완료');
+  const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9).sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s));
+  const byProc = {}; tgt.forEach(r => { const k = (r.proc || '').split('|')[1] || '기타'; (byProc[k] ||= []).push(r); });
+  const procTxt = Object.entries(byProc).sort((a, b) => b[1].length - a[1].length).map(([k, l]) => `${k} ${l.length}건`).join(', ');
+  const abn = S.rows.filter(r => /칩|공구|세팅|정비|청소|교체|보수|걸림|하역|적재/.test((r.task || '') + (r.hazard || ''))).sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s));
+  const pe = S.events.find(x => x.type === '정기'), d = docf(), tot = budgetItems().reduce((a, x) => a + (+x.amt || 0), 0);
+  const per = S.meta.people.length ? Math.round(tot * 10000 / S.meta.people.length) : 0, rw = d.reward, prev = S.year - 1;
+  const CEO = '대표이사 ' + S.meta.ceo, CH = ROLES.chief.join(' '), MG = ROLES.mgr.join(' '), RP = ROLES.rep.join(' ');
+  const sup = w => { const n = (SUP_DEFAULT[w] || '').split(/[,\s]+/).find(x => person(x)); const p = n && person(n); return p ? `${p.dept} ${p.pos ? p.pos + ' ' : ''}${n}` : `${w} 관리감독자`; };
+  const top = w => tgt.find(r => (r.proc || '').startsWith(w + '|')) || wpRows(w).sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s))[0];
+  const gk = top('가공실'), qk = top('품질실');
+  const add = n => { if (!e.date) return ''; const [y, m, dd] = e.date.split('-').map(Number); const t = new Date(y, m - 1, dd + n); return `${t.getMonth() + 1}/${t.getDate()}`; };
+  const purpose = `${S.year}년도 정기 위험성평가 실시를 앞두고, ${prev}년 사후점검 지적사항을 개선하고 형식적인 평가를 탈피하여 현장 근로자가 체감하는 유해·위험요인을 실질적으로 발굴·개선하기 위함.\n대표이사, 총괄관리책임자, 근로자대표, 작업장별 관리감독자가 참여하여 평가 대상·범위 확정, 근로자 의견 수렴 방안, 개선 예산 집행에 대해 노사 간 사전 협의를 진행함.`;
+  const review = [
+    `- ${prev}년 위험성평가 인정사업장 사후점검(2025.07.30, 안전보건공단) 결과 지적사항 ${F.length}건: ${F.map(f => f.title).join(', ')}.`,
+    `- 현재 개선 완료 ${fd.length}건, 진행중 ${fp.length}건, 미착수 ${F.length - fd.length - fp.length}건.`,
+    `- 문제점: 지적사항이 실시계획서 문구 반영에 그치고 실행 증빙(공정별 TBM 일지, 결과 게시, 포상 지급, 개선 전·후 기록)이 부족하였음.`].join('\n');
+  const agenda = [
+    { t: `${S.year}년 정기 위험성평가 추진 방향 및 주요 변경사항`, talks: [
+      { who: MG, text: `이번 정기 위험성평가는 단순 서류 작성이 아니라 작업 전 TBM, 수시평가와 연계하여 진행하겠습니다. ${prev}년 지적사항 ${F.length}건 중 ${fd.length}건이 완료되었고, 남은 ${fo.length}건(${fo.slice(0, 4).map(f => f.title).join(', ')}${fo.length > 4 ? ' 등' : ''})은 이번 평가와 함께 마무리하겠습니다. 평가 대상은 ${wps().join('·')} ${S.meta.procs.length}개 공정이며, 현재 하지 않는 작업과 쓰지 않는 물질은 평가표에서 정리하겠습니다.` },
+      { who: CEO, text: `위험성평가는 서류를 만들기 위한 절차가 아니라 우리 직원들의 안전을 직접 지키는 수단이어야 합니다. 올해 위험성평가 예산 ${won(tot)}만원(1인당 ${won(per)}원)을 편성했고, 평가에서 나오는 위험요인 개선에 필요한 예산은 우선 배정하겠습니다. 팀장과 근로자대표는 현장의 실제 위험을 빠짐없이 도출해 주십시오.` }] },
+    { t: '공정별 주요 유해·위험요인 및 현안 공유', talks: [
+      { who: RP, text: `현장 작업자들이 가장 위험을 느끼는 것은 정상 가공보다 ${abn.slice(0, 3).map(r => r.task || r.hazard).filter(Boolean).join(', ') || '칩 제거, 공구 교체, 설비 정비'} 같은 비정상·간헐 작업입니다. 이번 평가에서는 이런 작업의 위험성이 반드시 반영되어야 합니다.` },
+      ...(gk ? [{ who: sup('가공실'), text: `가공실은 '${gk.hazard}' 위험(위험도 ${risk(gk.f, gk.s)})이 가장 큽니다. ${gk.measure ? gk.measure + '을(를) 추진하고, ' : ''}설비 정비·장애 조치 시 전원 차단과 인터록 해제 금지 절차를 평가 항목에 포함하겠습니다.` }] : []),
+      ...(qk ? [{ who: sup('품질실'), text: `품질실은 '${qk.hazard}' 위험이 있고, 검사·세척 전환 시 수동 운반이 잦아 근골격계 부담이 있습니다. TBM에서 나온 위험요인과 아차사고도 이번 평가에 반영했으면 합니다.` }] : []),
+      { who: CH, text: `좋은 지적입니다. 이번 평가는 정상 작업뿐 아니라 비정상·정비·청소 작업을 별도로 구분해서 평가하겠습니다. 위험도 9 이상 개선대상은 현재 ${tgt.length}건(${procTxt || '없음'})이며 기한 내 개선 후 전·후 사진을 남기도록 하겠습니다.` }] },
+    { t: '현장 근로자 참여 및 의견 수렴 방안', talks: [
+      { who: RP, text: '평가표 양식이 복잡하면 근로자들이 참여하기 어렵습니다. TBM 때 바로 말하거나 간단히 제안할 수 있게 해 주십시오.' },
+      { who: MG, text: '공정별 TBM에서 나온 위험요인을 평가에 바로 반영하고, 작업장별 평가 때 관리감독자와 해당 작업 근로자가 함께 참여하여 서명하도록 하겠습니다. 결과는 평가 후 1주 이내 게시판에 게시하고 교육하겠습니다.' },
+      { who: CEO, text: `근로자 개선 제안 중 실제 개선으로 이어진 우수 제안은 포상해서 참여를 유도해 주십시오.${rw.dept || rw.idea ? ` (참여 우수 부서 ${won(rw.dept)}만원, 우수 개선제안 ${won(rw.idea)}만원)` : ''}` }] },
+    { t: '향후 일정 및 예산 지원', talks: [
+      { who: CH, text: `${pe?.date ? kdate(pe.date) + '부터' : '일정 확정 후'} 작업장별 정기평가를 실시하고, 위험요인 도출이 끝나면 노사 합동 현장 점검을 거쳐 감소대책과 예산을 확정하겠습니다.` },
+      { who: CEO, text: '즉시 조치 가능한 건은 바로 집행하고, 설비 교체처럼 큰 예산이 필요한 건은 우선순위를 정해 반영하겠습니다.' }] }];
+  const decisions = [
+    `1. 평가 범위: ${wps().join('·')} ${S.meta.procs.length}개 공정의 정상 작업 외에 칩 제거·공구 교체·설비 정비·청소 등 비정상 작업을 필수 평가 대상에 포함함.`,
+    '2. 근로자 참여: 작업장별 평가 시 관리감독자와 해당 작업 근로자가 함께 참여하고 서명함. 공정별 TBM은 매일 실시하고 일지를 작성함.',
+    `3. ${prev}년 지적사항: 미완료 ${fo.length}건은 담당·기한을 정해 연내 완료함.`,
+    `4. 개선 예산: 위험도 9 이상 항목은 사업주 승인 하에 우선 예산 배정함.`,
+    '5. 결과 공유: 평가 완료 후 1주 이내 게시판 고지 및 근로자 교육, 공단 KRAS 등록.'].join('\n');
+  const actions = [
+    { when: e.date ? `${add(1)} ~ ${add(3)}` : '', task: '전 부서 위험성평가 교육 및 평가 계획 공지 (실시 공고 게시)', owner: ROLES.mgr[1] },
+    { when: e.date ? `${add(4)} ~ ${add(11)}` : '', task: '작업장별 유해·위험요인 도출 및 위험성 추정·결정 (근로자 참여)', owner: '관리감독자' },
+    { when: e.date ? add(14) : '', task: '노·사 합동 현장 점검 및 감소대책 수립 (2차 회의)', owner: ROLES.chief[1] },
+    { when: '', task: '감소대책 이행, 개선 전·후 기록 및 결과 게시·교육', owner: ROLES.mgr[1] },
+    ...fo.slice(0, 5).map(f => ({ when: f.due ? md(f.due) : '', task: `${prev} 지적사항 — ${f.title}`, owner: f.owner || '' }))];
+  return { purpose, review, agenda, decisions, actions, opinion: opinionDraft() };
 }
 
 /* 정기평가 */
@@ -963,6 +1039,14 @@ document.addEventListener('mousedown', e => { if (e.target.closest('[data-cmd],[
 
 /* ============ 동작 ============ */
 const ACT = {};
+ACT.draftMeeting = async a => {
+  const e = S.events.find(x => x.id === a.dataset.id);
+  const has = (e.purpose || e.review || e.decisions || (e.actions || []).length || (e.opinion || '').trim());
+  if (has && !(await confirmBox('지금 적힌 회의 내용을 초안으로 바꿀까요?', '기존 내용은 지워집니다.'))) return;
+  Object.assign(e, meetingDraft(e)); await saveNow('events', e.id); route();
+};
+ACT.arrAdd = async a => { const [col, id, k] = a.dataset.k.split('|'); const o = getObj(col, id); let arr = getPath(o, k); if (!Array.isArray(arr)) { setPath(o, k, []); arr = getPath(o, k); } const last = k.split('.').pop(); arr.push(last === 'agenda' ? { t: '', talks: [{ who: '', text: '' }] } : last === 'talks' ? { who: '', text: '' } : { when: '', task: '', owner: '' }); await saveNow(col, id); route(); };
+ACT.arrDel = async a => { const [col, id, k] = a.dataset.k.split('|'); const o = getObj(col, id); (getPath(o, k) || []).splice(+a.dataset.i, 1); await saveNow(col, id); route(); };
 ACT.budAdd = async a => { const d = docf(); if (a.dataset.k === 'items') d.budget.items.push({ cat: '', amt: 0, detail: '' }); else d.budget.exec.push({ cat: '', date: '', content: '', amt: 0, proof: '' }); await saveNow('meta'); route(); };
 ACT.budDel = async a => { const d = docf(); d.budget[a.dataset.k].splice(+a.dataset.i, 1); await saveNow('meta'); route(); };
 ACT.addRow = async () => {
@@ -1004,6 +1088,7 @@ ACT.newEv = async a => {
     : type === '정기' ? { ...base, title: `${S.year}년 정기 위험성평가`, date2: '', summary: '', wp: Object.fromEntries(wps().map(w => { const sup = (S.meta.supervisors || SUP_DEFAULT)[w] || ''; const supN = sup.split(/[,\s]+/).filter(n => person(n));
         return [w, { date: '', evaluator: sup, opinion: '', done: false, att: [...new Set([...supN, ...S.meta.people.filter(p => p.wp === w).map(p => p.name)])], sigs: {} }]; })) }
     : { ...base, title: 'SUS 소재 하역·적재', place: '가공실', period: '', proc: S.meta.procs[0] ? procKey(S.meta.procs[0]) : '', item: 'SUS 소재', weight: '', shape: '', method: '대차', chief: '', workers: '', route: '', risks: '', chk: {}, measures: '', writer: '', checker: '', att: [] };
+  if (type === '회의') Object.assign(o, meetingDraft(o));
   S.events.push(o); await saveNow('events', o.id);
   go(type === '수시' ? 'adhoc' : type === '중량물' ? 'heavy' : type === '정기' ? 'periodic' : 'edu', o.id);
 };
@@ -1112,7 +1197,8 @@ $('#jsonIn').addEventListener('change', async e => {
 /* ============ 인쇄 ============ */
 async function printHTML(html) {
   await flushAll();
-  const p = $('#print'); p.innerHTML = html;
+  const land = html.includes('class="land');
+  const p = $('#print'); p.innerHTML = `<div class="${land ? 'land' : ''}"><table class="pw ${land ? 'lw' : ''}"><thead><tr><td></td></tr></thead><tbody><tr><td>${html}</td></tr></tbody><tfoot><tr><td></td></tr></tfoot></table></div>`;
   const imgs = [...p.querySelectorAll('img[data-ph]')];
   await Promise.all(imgs.map(async im => { im.src = await getPhoto(im.dataset.ph) || ''; }));
   await Promise.all([...p.querySelectorAll('img')].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; })));
@@ -1230,12 +1316,20 @@ function evHTML(e) {
     <table><tr><th style="width:16%">교육일시</th><td>${kdateW(e.date)}${timeStr(e)}</td><th style="width:12%">강 사</th><td>${esc(e.teacher)}</td></tr><tr><th>교육장소</th><td colspan="3">${esc(e.place)}</td></tr></table>
     <h2>▣ 교육내용</h2><div class="ind">${nl(e.content)}</div>
     ${(e.photos || []).length ? `<h2>▣ 교육 사진</h2>${phPrint(e.photos)}` : ''}<h2>▣ 참석자 명단</h2>${sigTable(e)}`;
-  else if (e.type === '회의') { const rep = '유성배'; h = `${head('위험성평가 회의결과')}
-    <table><tr><th style="width:16%">회의일시</th><td>${kdateW(e.date)}${timeStr(e)}</td></tr><tr><th>회의장소</th><td>${esc(e.place)}</td></tr></table>
-    <h2>▣ 회의내용</h2><div class="ind">${nl(e.content)}</div>
-    <h2>▣ 근로자대표 의견</h2><table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:26%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '(서명)'}</td></tr></table>
-    <h2>▣ 위험성평가 회의개최 사진 또는 근거서류</h2>${phPrint(e.photos) || '<table><tr><td style="height:30mm"></td></tr></table>'}
-    <h2>▣ 참석자 명단</h2>${sigTable(e)}`; }
+  else if (e.type === '회의') { const rep = ROLES.rep[1], ag = e.agenda || [];
+    let n = 0; const sec = t => `<h2>▣ ${++n}. ${t}</h2>`;
+    h = `<div class="pb" style="position:relative">${approveHTML('30%')}<h1 style="margin-top:26mm">위험성평가 회의결과</h1>
+    <table><tr><th style="width:16%">회의일시</th><td>${kdateW(e.date)}${timeStr(e)}</td><th style="width:14%">회의장소</th><td>${esc(e.place)}</td></tr>
+    <tr><th>주 관</th><td>${ROLES.chief[0]} ${ROLES.chief[1]}</td><th>진 행</th><td>${ROLES.mgr[0]} ${ROLES.mgr[1]}</td></tr>
+    <tr><th>참 석</th><td colspan="3">${pCount(e) ? pCount(e) + '명' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명'} / 대상 ${(e.att || []).length}명 (참석자 명단 별첨)</td></tr></table>
+    ${e.purpose ? sec('회의 목적 및 배경') + `<div class="ind">${nl(e.purpose)}</div>` : ''}
+    ${e.review ? sec('전년도 실적 검토') + `<div class="ind">${nl(e.review)}</div>` : ''}
+    ${ag.length ? sec('주요 회의 및 토의 내용') + ag.map((x, i) => `<div class="bk"><p style="margin-top:6px"><b>안건 ${i + 1}. ${esc(x.t)}</b></p>${(x.talks || []).filter(t => (t.text || '').trim()).map(t => `<div class="ind" style="margin:3px 0"><b>${esc(t.who || '')}</b> : “${nl(t.text)}”</div>`).join('')}${x.talk ? `<div class="ind">${nl(x.talk)}</div>` : ''}</div>`).join('') : sec('회의내용') + `<div class="ind">${nl(e.content)}</div>`}
+    ${e.decisions ? sec('회의 결과 및 의결 사항') + `<div class="ind">${nl(e.decisions)}</div>` : ''}
+    ${(e.actions || []).length ? sec('향후 추진 일정') + `<table><tr><th style="width:18%">일 정</th><th>추진 내용</th><th style="width:16%">담 당</th><th style="width:10%">확인</th></tr>${e.actions.map(x => `<tr><td class="c">${esc(x.when || x.due || '')}</td><td>${esc(x.task)}</td><td class="c">${esc(x.owner)}</td><td></td></tr>`).join('')}</table>` : ''}
+    ${sec('근로자대표 의견')}<table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:24%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '<br>(서명)'}</td></tr></table>
+    ${sec('회의개최 사진 또는 근거서류')}${phPrint(e.photos) || '<table><tr><td style="height:30mm"></td></tr></table>'}</div>
+    <h1>위험성평가 회의 참석자 명단</h1><p class="c small">${kdateW(e.date)}${timeStr(e)} · ${esc(e.place)}</p>${sigTable(e)}`; }
   else if (e.type === '수시') { const rows = S.rows.filter(r => r.ev === e.id); h = `<div class="land small">${approveHTML('28%')}${head('수시 위험성평가 실시 기록', esc(S.meta.company) + ' · 실시계획서 5-다')}
     <table><tr><th style="width:12%">실시 일자</th><td>${kdateW(e.date)}</td><th style="width:12%">실시 사유</th><td>${esc(e.reason)}</td></tr>
     <tr><th>대상 공정</th><td>${esc(procLabel(e.proc))}</td><th>대상</th><td>${esc(e.target)}</td></tr>
