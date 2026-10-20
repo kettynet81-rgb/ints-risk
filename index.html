@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.10';
+const VERSION = 'v1.11';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -173,6 +173,7 @@ function grade(r) { if (!r) return ''; if (r <= 3) return '무시'; if (r <= 6) 
 function rkCls(r) { return r >= 12 ? 'h' : r >= 9 ? 'm' : ''; }
 const isP = (o, n) => !!(((o || {}).pres || {})[n] || ((o || {}).sigs || {})[n]);
 const pCount = o => (o.att || []).filter(n => isP(o, n)).length;
+const pCountP = o => pCount(o) || (o.att || []).length;
 const risk = (f, s) => (+f || 0) * (+s || 0);
 const rk = (f, s) => { const r = risk(f, s); return r ? `<span class="rk ${rkCls(r)}">${r} ${grade(r)}</span>` : '<span class="rk">-</span>'; };
 
@@ -299,7 +300,9 @@ async function loadYear(y) {
   const [rows, tbm, events, docs] = await Promise.all([dList('ra_rows', y), dList('ra_tbm', y), dList('ra_events', y), dList('ra_docs', y)]);
   S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
   docs.forEach(d => S.docs[d.sec] = d.html);
-  await migrate(); await migrate2(); autoFindings(); stIdle(); route();
+  await migrate(); await migrate2();
+  if ((S.meta.mig || 0) < 3) { for (const e of S.events.filter(x => x.type === '회의' && x.place === '2층 사무실')) { e.place = '2층 휴게실'; await dPut('ra_events', e.id, e); } S.meta.mig = 3; await dPut('ra_meta', String(S.year), S.meta); }
+  autoFindings(); stIdle(); route();
 }
 async function migrate() {
   const m = S.meta; if ((m.mig || 0) >= 1) return;
@@ -971,7 +974,7 @@ document.addEventListener('change', e => {
   if (el.dataset.flt) { S.f[el.dataset.flt] = el.value; if (el.dataset.flt === 'wp') S.f.proc = ''; if (el.dataset.flt !== 'tbmDate') route(); return; }
   if (el.dataset.hz) { const [tid, rid] = el.dataset.hz.split('|'); const t = S.tbm.find(x => x.id === tid); t.haz ||= []; t.haz = el.checked ? [...new Set([...t.haz, rid])] : t.haz.filter(x => x !== rid); queueSave('tbm', tid); return; }
   if (el.dataset.pres) { const [col, id, path, n] = el.dataset.pres.split('|'); const o = subObj(getObj(col, id), path); o.pres ||= {}; if (el.checked) o.pres[n] = true; else { delete o.pres[n]; if (o.sigs) delete o.sigs[n]; } queueSave(col, id); return; }
-  if (el.dataset.addatt) { const [col, id, path] = el.dataset.addatt.split('|'); const t = subObj(getObj(col, id), path); if (el.value) { t.att = [...(t.att || []), el.value]; queueSave(col, id); route(); } return; }
+  if (el.dataset.addatt) { const [col, id, path] = el.dataset.addatt.split('|'); const t = subObj(getObj(col, id), path); if (el.value) { t.att = [...(t.att || []), el.value]; t.pres ||= {}; t.pres[el.value] = true; queueSave(col, id); route(); } return; }
   if (el.id === 'yearSel') { flushAll().then(() => { location.hash = 'dash'; loadYear(+el.value); }); }
 });
 document.addEventListener('input', e => { const el = e.target; if (el.dataset.b && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /^(text|number)$/.test(el.type)))) onBind(el, 'input'); });
@@ -1096,6 +1099,7 @@ ACT.newTbm = async a => {
   const leader = S.meta.tbmLeader || '';
   const t = { id: uid(), year: S.year, at: Date.now(), date: dt, time: '', wp, leader, work: prev?.work || '', haz: prev?.haz ? [...prev.haz] : S.rows.filter(r => (r.proc || '').startsWith(wp + '|') && risk(r.f, r.s) >= 9).map(r => r.id),
     extra: prev?.extra || '', note: '', health: false, ppe: false, att: prev?.att ? [...prev.att] : [...new Set([leader, ...def].filter(Boolean))], sigs: {} };
+  t.pres = Object.fromEntries(t.att.map(n => [n, true]));
   S.tbm.push(t); await saveNow('tbm', t.id); go('tbm', t.id);
 };
 ACT.newEv = async a => {
@@ -1103,11 +1107,13 @@ ACT.newEv = async a => {
   if (type === '정기') { const ex = S.events.find(e => e.type === '정기'); if (ex && !(await confirmBox(`${S.year}년 정기평가가 이미 있습니다`, '하나 더 만들까요? (취소하면 기존 평가를 엽니다)'))) { go('periodic', ex.id); return; } }
   const base = { id: uid(), year: S.year, at: Date.now(), type, date: '', photos: [], sigs: {} };
   const o = type === '교육' ? { ...base, t1: '', t2: '', place: '2층 사무실', teacher: '김은식', title: '위험성평가 교육', content: EDU_DEFAULT, att: all }
-    : type === '회의' ? { ...base, t1: '', t2: '', place: '2층 사무실', title: `${S.year}년 위험성평가 실시 회의`, content: MEET_DEFAULT, opinion: '', att: all }
+    : type === '회의' ? { ...base, t1: '', t2: '', place: '2층 휴게실', title: `${S.year}년 위험성평가 실시 회의`, content: MEET_DEFAULT, opinion: '', att: all }
     : type === '수시' ? { ...base, reason: '', proc: '', target: '', content: '', members: '', result: '', att: [] }
     : type === '정기' ? { ...base, title: `${S.year}년 정기 위험성평가`, date2: '', summary: '', wp: Object.fromEntries(wps().map(w => { const sup = (S.meta.supervisors || SUP_DEFAULT)[w] || ''; const supN = sup.split(/[,\s]+/).filter(n => person(n));
         return [w, { date: '', evaluator: sup, opinion: '', done: false, att: [...new Set([...supN, ...S.meta.people.filter(p => p.wp === w).map(p => p.name)])], sigs: {} }]; })) }
     : { ...base, title: 'SUS 소재 하역·적재', place: '가공실', period: '', proc: S.meta.procs[0] ? procKey(S.meta.procs[0]) : '', item: 'SUS 소재', weight: '', shape: '', method: '대차', chief: '', workers: '', route: '', risks: '', chk: {}, measures: '', writer: '', checker: '', att: [] };
+  if (o.att) o.pres = Object.fromEntries(o.att.map(n => [n, true]));
+  if (o.wp) Object.values(o.wp).forEach(w => w.pres = Object.fromEntries((w.att || []).map(n => [n, true])));
   if (type === '회의') Object.assign(o, meetingDraft(o));
   S.events.push(o); await saveNow('events', o.id);
   go(type === '수시' ? 'adhoc' : type === '중량물' ? 'heavy' : type === '정기' ? 'periodic' : 'edu', o.id);
@@ -1229,8 +1235,8 @@ const head = (title, sub = '') => `<h1>${esc(title)}</h1>${sub ? `<p class="c sm
 const sigTable = (o) => {
   const names = o.att || [], cells = names.map((n, i) => `<td class="c">${i + 1}</td><td class="c">${esc(pLabel(n))}</td><td class="c">${esc(n)}</td><td class="c">${(o.sigs || {})[n] ? `<img class="sig" src="${o.sigs[n]}">` : ''}</td>`);
   const rows = []; for (let i = 0; i < cells.length; i += 2) rows.push(`<tr style="height:12mm">${cells[i]}${cells[i + 1] || '<td></td><td></td><td></td><td></td>'}</tr>`);
-  const c = pCount(o);
-  return `<table><colgroup>${[4,14,11,21,4,14,11,21].map(w => `<col style="width:${w}%">`).join('')}</colgroup><tr><th>No</th><th>소속/직책</th><th>성 명</th><th>서 명</th><th>No</th><th>소속/직책</th><th>성 명</th><th>서 명</th></tr>${rows.join('')}</table><p class="rt small">참석 ${c ? c : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}명 / 대상 ${names.length}명</p>`;
+  const c = pCountP(o);
+  return `<table><colgroup>${[4,14,11,21,4,14,11,21].map(w => `<col style="width:${w}%">`).join('')}</colgroup><tr><th>No</th><th>소속/직책</th><th>성 명</th><th>서 명</th><th>No</th><th>소속/직책</th><th>성 명</th><th>서 명</th></tr>${rows.join('')}</table><p class="rt small">참석 ${c}명 / 대상 ${names.length}명</p>`;
 };
 const phPrint = ids => (ids || []).length ? `<div class="phs">${ids.map(i => `<img data-ph="${i}">`).join('')}</div>` : '';
 const timeStr = o => o.t1 ? ` ${o.t1}${o.t2 ? ' ~ ' + o.t2 : ''}` : '';
@@ -1315,7 +1321,7 @@ function tbmHTML(t) {
   const hz = (t.haz || []).map(id => S.rows.find(r => r.id === id)).filter(Boolean);
   return `<div class="bk">${head('TBM (작업 전 안전점검회의) 일지')}
   <table><tr><th style="width:14%">일 자</th><td>${kdateW(t.date)} ${esc(t.time || '')}</td><th style="width:14%">작업장</th><td>${esc(t.wp)}</td></tr>
-  <tr><th>진행자</th><td>${esc(t.leader)}</td><th>참석</th><td>${pCount(t) ? pCount(t) + '명' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명'}</td></tr>
+  <tr><th>진행자</th><td>${esc(t.leader)}</td><th>참석</th><td>${pCountP(t)}명</td></tr>
   <tr><th>작업 내용</th><td colspan="3">${nl(t.work)}</td></tr></table>
   <table><tr><th style="width:5%">No</th><th style="width:14%">공정</th><th>유해·위험요인</th><th style="width:9%">위험도</th><th>안전대책</th></tr>
   ${hz.map((r, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc((r.proc || '').split('|')[1])}</td><td>${nl(r.hazard)}</td><td class="c">${risk(r.f, r.s)}</td><td>${nl(r.measure || r.current)}</td></tr>`).join('')}
@@ -1341,7 +1347,7 @@ function evHTML(e) {
     h = `<div class="pb"><table style="width:30%;margin:0 0 4mm auto;font-size:9pt"><tr><th>작성</th><th>검토</th><th>승인</th></tr><tr><td style="height:13mm"></td><td></td><td></td></tr></table><h1 style="margin-top:0">위험성평가 회의결과</h1>
     <table><tr><th style="width:16%">회의일시</th><td>${kdateW(e.date)}${timeStr(e)}</td><th style="width:14%">회의장소</th><td>${esc(e.place)}</td></tr>
     <tr><th>주 관</th><td>${ROLES.chief[0]} ${ROLES.chief[1]}</td><th>진 행</th><td>${ROLES.mgr[0]} ${ROLES.mgr[1]}</td></tr>
-    <tr><th>참 석</th><td colspan="3">${pCount(e) ? pCount(e) + '명' : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명'} / 대상 ${(e.att || []).length}명 (참석자 명단 별첨)</td></tr></table>
+    <tr><th>참 석</th><td colspan="3">${pCountP(e)}명 / 대상 ${(e.att || []).length}명 (참석자 명단 별첨)</td></tr></table>
     ${e.purpose ? sec('회의 목적 및 배경') + `<div class="ind">${nl(e.purpose)}</div>` : ''}
     ${e.review ? sec('전년도 실적 검토') + `<div class="ind">${nl(e.review)}</div>` : ''}
     ${ag.length ? sec('주요 회의 및 토의 내용') + ag.map((x, i) => `<div class="bk"><p style="margin-top:6px"><b>안건 ${i + 1}. ${esc(x.t)}</b></p>${(x.talks || []).filter(t => (t.text || '').trim()).map(t => `<div class="ind" style="margin:3px 0"><b>${esc(t.who || '')}</b> : “${nl(t.text)}”</div>`).join('')}${x.talk ? `<div class="ind">${nl(x.talk)}</div>` : ''}</div>`).join('') : sec('회의내용') + `<div class="ind">${nl(e.content)}</div>`}
