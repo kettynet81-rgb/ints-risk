@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.13';
+const VERSION = 'v1.14';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -301,6 +301,17 @@ async function loadYear(y) {
   S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
   docs.forEach(d => S.docs[d.sec] = d.html);
   await migrate(); await migrate2();
+  if (!S.meta.mig4) {
+    const m = S.meta;
+    const el = S.rows.find(r => r.hazard === '세척기 누전으로 감전');
+    if (el) { Object.assign(el, { task: '초음파세척기 사용', hazard: '젖은 손으로 소형 초음파세척기 전원 조작 시 감전', f: 1, s: 3, draft: true }); await dPut('ra_rows', el.id, el); }
+    const bk = S.rows.find(r => r.hazard === '세척 바스켓 들어올리다 허리 부담');
+    if (bk) { m.deletions.push({ at: today(), proc: bk.proc, hazard: bk.hazard, risk: risk(bk.f, bk.s), why: '소형 초음파세척기 — 중량 바스켓 취급 없음' }); S.rows = S.rows.filter(r => r !== bk); await dDel('ra_rows', bk.id);
+      const wet = newRow({ proc: '품질실|초음파세척', task: '세척', hazard: '세척조 물이 바닥에 흘러 미끄러짐', type: '넘어짐', f: 2, s: 2, ord: bk.ord, draft: true }); S.rows.push(wet); await dPut('ra_rows', wet.id, wet); }
+    m.procs.forEach(p => { if (p.proc === '초음파세척' && p.equip === '초음파세척기') p.equip = '소형 초음파세척기'; });
+    if (S.docs.plan && S.docs.plan.includes('<td>초음파세척기</td>')) { S.docs.plan = S.docs.plan.replaceAll('<td>초음파세척기</td>', '<td>소형 초음파세척기</td>'); await dPut('ra_docs', S.year + '_plan', { year: S.year, sec: 'plan', html: S.docs.plan, at: Date.now() }); }
+    m.mig4 = true; await dPut('ra_meta', String(S.year), m);
+  }
   if ((S.meta.mig || 0) < 3) { for (const e of S.events.filter(x => x.type === '회의' && x.place === '2층 사무실')) { e.place = '2층 휴게실'; await dPut('ra_events', e.id, e); } S.meta.mig = 3; await dPut('ra_meta', String(S.year), S.meta); }
  stIdle(); route();
 }
