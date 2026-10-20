@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.7';
+const VERSION = 'v1.8';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -299,7 +299,19 @@ async function loadYear(y) {
   const [rows, tbm, events, docs] = await Promise.all([dList('ra_rows', y), dList('ra_tbm', y), dList('ra_events', y), dList('ra_docs', y)]);
   S.rows = rows; S.tbm = tbm; S.events = events; S.docs = {};
   docs.forEach(d => S.docs[d.sec] = d.html);
-  autoFindings(); stIdle(); route();
+  await migrate(); autoFindings(); stIdle(); route();
+}
+async function migrate() {
+  const m = S.meta; if ((m.mig || 0) >= 1) return;
+  const door = S.rows.find(r => r.hazard === '도어 열린 상태로 기동 시 회전체에 신체 접촉');
+  if (door) { door.hazard = '도어 연 상태(인터록 해제)로 작업 시 회전체·이동부에 손·얼굴 접촉'; if (door.current === '도어 인터록') door.current = '';
+    if (!door.measure || door.measure === '도어 인터록 작동 매일 점검, 해제 금지 표지 부착') door.measure = '도어 오픈 시 양손으로 도어를 잡고 작업, 얼굴(머리)을 설비 안으로 넣지 않기';
+    await dPut('ra_rows', door.id, door); }
+  const wash = S.rows.find(r => r.hazard === '세척액이 피부·눈에 튐');
+  if (wash) { m.deletions.push({ at: today(), proc: wash.proc, hazard: wash.hazard, risk: risk(wash.f, wash.s), why: '초음파 세척 — 세척액 미사용' }); S.rows = S.rows.filter(r => r !== wash); await dDel('ra_rows', wash.id); }
+  m.procs.forEach(p => { if (p.equip === '초음파세척기(세척액)') p.equip = '초음파세척기'; });
+  if (S.docs.plan && S.docs.plan.includes('초음파세척기(세척액)')) { S.docs.plan = S.docs.plan.replaceAll('초음파세척기(세척액)', '초음파세척기'); await dPut('ra_docs', S.year + '_plan', { year: S.year, sec: 'plan', html: S.docs.plan, at: Date.now() }); }
+  m.mig = 1; await dPut('ra_meta', String(S.year), m);
 }
 async function firstSetup(y) {
   const meta = seedMeta(y);
@@ -569,8 +581,8 @@ function meetingDraft(e) {
       { who: CEO, text: `위험성평가는 서류를 만들기 위한 절차가 아니라 우리 직원들의 안전을 직접 지키는 수단이어야 합니다. 올해 위험성평가 예산 ${won(tot)}만원(1인당 ${won(per)}원)을 편성했고, 평가에서 나오는 위험요인 개선에 필요한 예산은 우선 배정하겠습니다. 팀장과 근로자대표는 현장의 실제 위험을 빠짐없이 도출해 주십시오.` }] },
     { t: '공정별 주요 유해·위험요인 및 현안 공유', talks: [
       { who: RP, text: `현장 작업자들이 가장 위험을 느끼는 것은 정상 가공보다 ${abn.slice(0, 3).map(r => r.task || r.hazard).filter(Boolean).join(', ') || '칩 제거, 공구 교체, 설비 정비'} 같은 비정상·간헐 작업입니다. 이번 평가에서는 이런 작업의 위험성이 반드시 반영되어야 합니다.` },
-      ...(gk ? [{ who: sup('가공실'), text: `가공실은 '${gk.hazard}' 위험(위험도 ${risk(gk.f, gk.s)})이 가장 큽니다. ${gk.measure ? gk.measure + '을(를) 추진하고, ' : ''}설비 정비·장애 조치 시 전원 차단과 인터록 해제 금지 절차를 평가 항목에 포함하겠습니다.` }] : []),
-      ...(qk ? [{ who: sup('품질실'), text: `품질실은 '${qk.hazard}' 위험이 있고, 검사·세척 전환 시 수동 운반이 잦아 근골격계 부담이 있습니다. TBM에서 나온 위험요인과 아차사고도 이번 평가에 반영했으면 합니다.` }] : []),
+      ...(gk ? [{ who: sup('가공실'), text: `가공실은 '${gk.hazard}' 위험(위험도 ${risk(gk.f, gk.s)})이 가장 큽니다. 작업 특성상 도어 인터록은 해제할 수밖에 없으므로, 도어 오픈 시 양손으로 도어를 잡고 작업하고 얼굴을 설비 안으로 넣지 않도록 작업 수칙을 정하고 TBM 때마다 확인하겠습니다.` }] : []),
+      ...(qk ? [{ who: sup('품질실'), text: `품질실은 '${qk.hazard}' 위험이 있고, 검사·초음파세척 전환 시 바스켓·제품 수동 운반이 잦아 근골격계 부담이 있습니다. TBM에서 나온 위험요인과 아차사고도 이번 평가에 반영했으면 합니다.` }] : []),
       { who: CH, text: `좋은 지적입니다. 이번 평가는 정상 작업뿐 아니라 비정상·정비·청소 작업을 별도로 구분해서 평가하겠습니다. 위험도 9 이상 개선대상은 현재 ${tgt.length}건(${procTxt || '없음'})이며 기한 내 개선 후 전·후 사진을 남기도록 하겠습니다.` }] },
     { t: '현장 근로자 참여 및 의견 수렴 방안', talks: [
       { who: RP, text: '평가표 양식이 복잡하면 근로자들이 참여하기 어렵습니다. TBM 때 바로 말하거나 간단히 제안할 수 있게 해 주십시오.' },
