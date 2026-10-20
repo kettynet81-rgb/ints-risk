@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.18';
+const VERSION = 'v1.19';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -580,7 +580,7 @@ function meetingFields(e) {
   <button class="btn s" data-act="arrAdd" data-k="events|${e.id}|actions" style="margin-top:6px">+ 일정</button>
   <h3>근로자대표 의견 (서명란과 함께 인쇄)</h3>${ta(b('opinion'), e.opinion, 4, 'class="inp"')}`;
 }
-const FOWNER = { '방침 및 목표 게시': '장재신', 'TBM 실시 근거자료 확보': '유성배', '위험성평가 결과 고지': '김은식', '실시계획서 내 포상비용 반영': '장재신', '위험성평가표 내 공정 분류표 포함': '김은식', '중량물 취급 작업계획서': '백정국', '불필요 작업·위험물 삭제': '김은식', '수시평가 체계 마련': '김은식', '불필요 화학물질 제거': '백정국', '공단 홈페이지(KRAS) 등록': '김은식' };
+const FOWNER = { '방침 및 목표 게시': '장재신', 'TBM 실시 근거자료 확보': '장재신', '위험성평가 결과 고지': '김은식', '실시계획서 내 포상비용 반영': '장재신', '위험성평가표 내 공정 분류표 포함': '김은식', '중량물 취급 작업계획서': '백정국', '불필요 작업·위험물 삭제': '김은식', '수시평가 체계 마련': '김은식', '불필요 화학물질 제거': '백정국', '공단 홈페이지(KRAS) 등록': '김은식' };
 function meetingDraft(e) {
   const F = S.meta.findings, fd = F.filter(f => f.status === '완료'), fp = F.filter(f => f.status === '진행중'), fo = F.filter(f => f.status !== '완료');
   const tgt = S.rows.filter(r => risk(r.f, r.s) >= 9).sort((a, b) => risk(b.f, b.s) - risk(a.f, a.s));
@@ -795,7 +795,7 @@ function annualRows() {
     { k: 'periodic', g: '3. 위험성평가\n실시', t: '정기평가 (공정 분류, 불필요 작업·위험물 삭제)', goal: '1회', who: '김은식', proof: '위험성평가표', d: [...new Set(peDates)], res: pe.length ? `작업장 확정 ${pe[0] ? wps().filter(w => ((pe[0].wp || {})[w] || {}).done).length : 0}/${wps().length}` : '' },
     { k: 'adhoc', g: '', t: '수시평가 (설비·작업방법·화학물질 변경 시)', goal: '발생 시', who: '김은식', proof: '수시평가 기록', span: '사유 발생 시', d: evs('수시').map(e => e.date).filter(Boolean), res: `${evs('수시').length}건` },
     { k: 'measure', g: '', t: '감소대책 이행', goal: '고위험 100%', who: '백규담', proof: '개선 전·후 사진', d: tdone.map(r => r.done), res: tgt.length ? `${tdone.length}/${tgt.length} (${Math.round(tdone.length / tgt.length * 100)}%)` : '' },
-    { k: 'tbm', g: '4. 참여 및\n결과 공유', t: '공정별 TBM (가공·품질)', goal: '매일', who: '유성배', proof: 'TBM 일지', d: tbmD, count: true, res: `${S.tbm.length}회` },
+    { k: 'tbm', g: '4. 참여 및\n결과 공유', t: '공정별 TBM (가공·품질)', goal: '매일', who: '장재신', proof: 'TBM 일지', d: tbmD, count: true, res: `${S.tbm.length}회` },
     { k: 'post', g: '', t: '위험성평가 결과 게시판 고지', goal: '평가 후 1주 이내', who: '김은식', proof: '게시 사진', d: fdone(3), res: fnd(3).status || '' },
     { k: 'reward', g: '', t: '위험성평가 참여 우수 부서 포상', goal: '연 1회', who: '장재신', proof: '포상금 지급·수령 확인서', d: rewardEx.map(x => x.date).filter(Boolean), res: rewardEx.length ? `${rewardEx.length}건 ${won(rewardEx.reduce((a, x) => a + (+x.amt || 0), 0))}원` : '' }];
 }
