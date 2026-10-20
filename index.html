@@ -93,7 +93,7 @@ table.ev td textarea{min-height:34px}
 .doc img{max-width:100%}
 .doc ul,.doc ol{padding-left:20px}
 .doc h1{font-size:18pt;text-align:center;margin:0 0 10px;letter-spacing:2px}
-.doc h2{font-size:12pt;margin:12px 0 6px}
+.doc h2{font-size:12pt;margin:12px 0 6px;break-after:avoid}
 .doc .c{text-align:center}.doc .rt{text-align:right}
 .doc .sig{height:32px;max-width:100%;display:block;margin:0 auto}
 .doc .phs{display:flex;flex-wrap:wrap;gap:6px}
@@ -148,7 +148,7 @@ table.ev td textarea{min-height:34px}
 <script src="docs-seed.js"></script>
 <script type="module">
 /* ============ 기본 ============ */
-const VERSION = 'v1.11';
+const VERSION = 'v1.12';
 const CFG = {apiKey:"AIzaSyAoPYmhpvYIqx_yYr-Jwm5n2-wdFYtAW_c",authDomain:"ints-weekly.firebaseapp.com",projectId:"ints-weekly",storageBucket:"ints-weekly.firebasestorage.app",messagingSenderId:"421908766897",appId:"1:421908766897:web:f3c4539c61fe3b7ad28290"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1350,10 +1350,10 @@ function evHTML(e) {
     <tr><th>참 석</th><td colspan="3">${pCountP(e)}명 / 대상 ${(e.att || []).length}명 (참석자 명단 별첨)</td></tr></table>
     ${e.purpose ? sec('회의 목적 및 배경') + `<div class="ind">${nl(e.purpose)}</div>` : ''}
     ${e.review ? sec('전년도 실적 검토') + `<div class="ind">${nl(e.review)}</div>` : ''}
-    ${ag.length ? sec('주요 회의 및 토의 내용') + ag.map((x, i) => `<div class="bk"><p style="margin-top:6px"><b>안건 ${i + 1}. ${esc(x.t)}</b></p>${(x.talks || []).filter(t => (t.text || '').trim()).map(t => `<div class="ind" style="margin:3px 0"><b>${esc(t.who || '')}</b> : “${nl(t.text)}”</div>`).join('')}${x.talk ? `<div class="ind">${nl(x.talk)}</div>` : ''}</div>`).join('') : sec('회의내용') + `<div class="ind">${nl(e.content)}</div>`}
+    ${ag.length ? sec('주요 회의 및 토의 내용') + ag.map((x, i) => `<div><p style="margin-top:6px;break-after:avoid"><b>안건 ${i + 1}. ${esc(x.t)}</b></p>${(x.talks || []).filter(t => (t.text || '').trim()).map(t => `<div class="ind bk" style="margin:3px 0"><b>${esc(t.who || '')}</b> : “${nl(t.text)}”</div>`).join('')}${x.talk ? `<div class="ind">${nl(x.talk)}</div>` : ''}</div>`).join('') : sec('회의내용') + `<div class="ind">${nl(e.content)}</div>`}
     ${e.decisions ? sec('회의 결과 및 의결 사항') + `<div class="ind">${nl(e.decisions)}</div>` : ''}
-    ${(e.actions || []).length ? sec('향후 추진 일정') + `<table><tr><th style="width:18%">일 정</th><th>추진 내용</th><th style="width:16%">담 당</th><th style="width:10%">확인</th></tr>${e.actions.map(x => `<tr><td class="c">${esc(x.when || x.due || '')}</td><td>${esc(x.task)}</td><td class="c">${esc(x.owner)}</td><td></td></tr>`).join('')}</table>` : ''}
-    ${sec('근로자대표 의견')}<table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:24%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '<br>(서명)'}</td></tr></table>
+    ${(e.actions || []).length ? '<div class="bk">' + sec('향후 추진 일정') + `<table><tr><th style="width:18%">일 정</th><th>추진 내용</th><th style="width:16%">담 당</th><th style="width:10%">확인</th></tr>${e.actions.map(x => `<tr><td class="c">${esc(x.when || x.due || '')}</td><td>${esc(x.task)}</td><td class="c">${esc(x.owner)}</td><td></td></tr>`).join('')}</table></div>` : ''}
+    <div class="bk">${sec('근로자대표 의견')}<table><tr><td style="height:22mm">${nl(e.opinion)}</td><td style="width:24%;height:26mm" class="c">근로자대표 ${esc(rep)}<br>${(e.sigs || {})[rep] ? `<img class="sig" src="${e.sigs[rep]}">` : '<br>(서명)'}</td></tr></table></div>
     </div>
     <h1>위험성평가 회의 참석자 명단</h1><p class="c small">${kdateW(e.date)}${timeStr(e)} · ${esc(e.place)}</p>${sigTable(e)}`; }
   else if (e.type === '수시') { const rows = S.rows.filter(r => r.ev === e.id); h = `<div class="land small">${approveHTML('28%')}${head('수시 위험성평가 실시 기록', esc(S.meta.company) + ' · 실시계획서 5-다')}
